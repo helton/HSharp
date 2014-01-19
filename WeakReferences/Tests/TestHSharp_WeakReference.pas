@@ -51,7 +51,7 @@ type
 implementation
 
 uses
-  Vcl.Dialogs,
+  System.Rtti,
   System.SysUtils;
 
 { TChild }
@@ -89,12 +89,59 @@ procedure TestWeak.Test_Weak;
 var
   MyParent: IParent;
   MyChild: IChild;
+  VmiParent, VmiChild: TVirtualMethodInterceptor;
+  DestructorOfParentWasCalled,
+  DestructorOfChildWasCalled: Boolean;
+
+  procedure CreateVirtualMethodInterceptors;
+  begin
+    VmiParent := TVirtualMethodInterceptor.Create(TParent);
+    VmiChild  := TVirtualMethodInterceptor.Create(TChild);
+    VmiParent.OnBefore :=
+      procedure(aInstance: TObject; aMethod: TRttiMethod;
+                const aArgs: TArray<TValue>; out aDoInvoke: Boolean;
+                out Result: TValue)
+      begin
+        if aMethod.Name = 'FreeInstance' then
+          DestructorOfParentWasCalled := True;
+      end;
+    VmiChild.OnBefore :=
+      procedure(aInstance: TObject; aMethod: TRttiMethod;
+                const aArgs: TArray<TValue>; out aDoInvoke: Boolean;
+                out Result: TValue)
+      begin
+        if aMethod.Name = 'FreeInstance' then
+          DestructorOfChildWasCalled := True;
+      end;
+  end;
+
+  procedure SetupVirtualMethodInterceptors;
+  begin
+    VmiParent.Proxify(MyParent as TParent);
+    VmiChild.Proxify(MyChild as TChild);
+  end;
+
+  procedure ReleaseVirtualMethodInterceptors;
+  begin
+    VmiParent.Free;
+    VmiChild.Free;
+  end;
+
 begin
+  CreateVirtualMethodInterceptors;
+
   MyParent := TParent.Create;
   MyChild  := TChild.Create(MyParent);
+
+  SetupVirtualMethodInterceptors;
+
   MyChild  := nil;
   MyParent := nil;
-  //Check if a memory leak occured.
+
+  ReleaseVirtualMethodInterceptors;
+
+  CheckTrue(DestructorOfParentWasCalled, 'FreeInstance of parent was not called.');
+  CheckTrue(DestructorOfChildWasCalled,  'FreeInstance of child was not called.');
 end;
 
 initialization
