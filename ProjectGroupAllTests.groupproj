@@ -1,0 +1,48 @@
+﻿<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+    <PropertyGroup>
+        <ProjectGuid>{05F0E90C-D21C-406B-AEE2-981A2D9C16E0}</ProjectGuid>
+    </PropertyGroup>
+    <ItemGroup>
+        <Projects Include="Testing\Tests\TestsMocks.dproj">
+            <Dependencies/>
+        </Projects>
+        <Projects Include="WeakReferences\Tests\TestsWeakReferences.dproj">
+            <Dependencies/>
+        </Projects>
+    </ItemGroup>
+    <ProjectExtensions>
+        <Borland.Personality>Default.Personality.12</Borland.Personality>
+        <Borland.ProjectType/>
+        <BorlandProject>
+            <Default.Personality/>
+        </BorlandProject>
+    </ProjectExtensions>
+    <Target Name="TestsMocks">
+        <MSBuild Projects="Testing\Tests\TestsMocks.dproj"/>
+    </Target>
+    <Target Name="TestsMocks:Clean">
+        <MSBuild Projects="Testing\Tests\TestsMocks.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="TestsMocks:Make">
+        <MSBuild Projects="Testing\Tests\TestsMocks.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="TestsWeakReferences">
+        <MSBuild Projects="WeakReferences\Tests\TestsWeakReferences.dproj"/>
+    </Target>
+    <Target Name="TestsWeakReferences:Clean">
+        <MSBuild Projects="WeakReferences\Tests\TestsWeakReferences.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="TestsWeakReferences:Make">
+        <MSBuild Projects="WeakReferences\Tests\TestsWeakReferences.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="Build">
+        <CallTarget Targets="TestsMocks;TestsWeakReferences"/>
+    </Target>
+    <Target Name="Clean">
+        <CallTarget Targets="TestsMocks:Clean;TestsWeakReferences:Clean"/>
+    </Target>
+    <Target Name="Make">
+        <CallTarget Targets="TestsMocks:Make;TestsWeakReferences:Make"/>
+    </Target>
+    <Import Project="$(BDS)\Bin\CodeGear.Group.Targets" Condition="Exists('$(BDS)\Bin\CodeGear.Group.Targets')"/>
+</Project>

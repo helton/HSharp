@@ -5,8 +5,9 @@ interface
 uses
   System.Generics.Collections,
   System.Rtti,
+  HSharp.Behaviour.Interfaces,
   HSharp.Proxy.Interfaces,
-  HSharp.Behaviour.Interfaces;
+  HSharp.WeakReference;
 
 type
   TBaseProxy<T> = class(TInterfacedObject, IProxy<T>)
@@ -25,10 +26,8 @@ type
 
   TInterfaceProxy<T> = class(TVirtualInterface, IProxyStrategy<T>)
   strict private
-//  [Weak] FProxy: IProxy<T>; //change to a real weak reference
-    FProxy: Pointer;
+    FProxy: Weak<IProxy<T>>;
   private
-    function Proxy: IProxy<T>;
     procedure DoInvoke(aMethod: TRttiMethod; const aArgs: TArray<TValue>; out aResult: TValue);
   public
     constructor Create(aProxy: IProxy<T>);
@@ -37,13 +36,11 @@ type
 
   TObjectProxy<T> = class(TInterfacedObject, IProxyStrategy<T>)
   strict private
-//  [Weak] FProxy: IProxy<T>; //change to a real weak reference
-    FProxy: Pointer;
+    FProxy: Weak<IProxy<T>>;
     FInstance: T;
     FInitialized: Boolean;
     FInterceptor: TVirtualMethodInterceptor;
   private
-    function Proxy: IProxy<T>;
     function InstanceAsObject: TObject;
     procedure OnBeforeMethodCall(aInstance: TObject; aMethod: TRttiMethod;
       const aArgs: TArray<TValue>; out aDoInvoke: Boolean; out aResult: TValue);
@@ -93,12 +90,12 @@ begin
   FProxyStrategy := aProxyStrategy;
 end;
 
-{ TProxyVirtualInterface<T> }
+{ TInterfaceProxy<T> }
 
 constructor TInterfaceProxy<T>.Create(aProxy: IProxy<T>);
 begin
   inherited Create(TypeInfo(T), DoInvoke);
-  FProxy := @aProxy;
+  FProxy := aProxy;
 end;
 
 procedure TInterfaceProxy<T>.DoInvoke(aMethod: TRttiMethod;
@@ -110,11 +107,6 @@ end;
 function TInterfaceProxy<T>.GetInstance: T;
 begin
   Supports(Self, GetTypeData(TypeInfo(T)).Guid, Result);
-end;
-
-function TInterfaceProxy<T>.Proxy: IProxy<T>;
-begin
-  Result := IProxy<T>(FProxy^);
 end;
 
 { TProxyFactory<T> }
@@ -140,7 +132,7 @@ end;
 constructor TObjectProxy<T>.Create(aProxy: IProxy<T>);
 begin
   inherited Create;
-  FProxy := @aProxy;
+  FProxy := aProxy;
 end;
 
 destructor TObjectProxy<T>.Destroy;
@@ -168,7 +160,7 @@ begin
       FInstance    := RttiType.GetMethod('Create').Invoke(RttiType.AsInstance.MetaclassType, []).AsType<T>;
       FInterceptor := TVirtualMethodInterceptor.Create(RttiType.AsInstance.MetaclassType);
       FInterceptor.Proxify(InstanceAsObject);
-      Finterceptor.OnBefore := OnBeforeMethodCall;
+      FInterceptor.OnBefore := OnBeforeMethodCall;
     end;
     FInitialized := True;
   end;
@@ -187,9 +179,5 @@ begin
 
 end;
 
-function TObjectProxy<T>.Proxy: IProxy<T>;
-begin
-  Result := IProxy<T>(FProxy^);
-end;
 
 end.

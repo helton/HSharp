@@ -1,4 +1,4 @@
-program MockAndStubs;
+program TestsMocks;
 {
 
   Delphi DUnit Test Project
@@ -25,7 +25,8 @@ uses
   HSharp.Proxy.Interfaces in '..\HSharp.Proxy.Interfaces.pas',
   HSharp.Proxy in '..\HSharp.Proxy.pas',
   HSharp.Stub.Interfaces in '..\HSharp.Stub.Interfaces.pas',
-  HSharp.Stub in '..\HSharp.Stub.pas';
+  HSharp.Stub in '..\HSharp.Stub.pas',
+  HSharp.WeakReference in '..\..\WeakReferences\HSharp.WeakReference.pas';
 
 {$R *.res}
 
