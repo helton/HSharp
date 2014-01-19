@@ -15,6 +15,7 @@ type
   IProxy<T> = interface(IProxyStrategy<T>)
     ['{FDD5E9BF-A538-40F5-BDC1-FF4C5180D69B}']
     procedure SetProxyStrategy(aProxyStrategy: IProxyStrategy<T>);
+    procedure SetCurrentBehaviour(aBehaviour: IBehaviour<T>);
     procedure AddBehaviour(aBehaviour: IBehaviour<T>);
   end;
 

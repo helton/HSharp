@@ -62,6 +62,8 @@ procedure TestTMock.Test;
 begin
   FMockOfObject.Instance.MethodOfFooClass;
   FMockOfInterface.Instance.Proc;
+  FMockOfInterface.Setup.WillReturn('test').When.Func;
+  CheckEquals('test', FMockOfInterface.Instance.Func);
 end;
 
 procedure TestTMock.Test_Instance;

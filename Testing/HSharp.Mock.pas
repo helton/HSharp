@@ -4,11 +4,17 @@ interface
 
 uses
   System.Rtti,
+  HSharp.Behaviour,
+  HSharp.Behaviour.Interfaces,
   HSharp.Mock.Interfaces,
   HSharp.Proxy.Interfaces,
   HSharp.Proxy;
 
 type
+  TExecProc = procedure(aInstance: TObject; aMethod: TRttiMethod; const aArgs:
+    TArray<TValue>; out aDoInvoke: Boolean; out aResult: TValue);
+  { Decide how this function signature will be }
+
   TWhen<T> = class(TInterfacedObject, IWhen<T>)
   strict private
     FProxy: IProxy<T>;
@@ -24,6 +30,7 @@ type
   public
     constructor Create(aProxy: IProxy<T>); reintroduce;
     function WillReturn(aValue: TValue): IWhen<T>;
+    function WillExecute(aMethod: TExecProc): IWhen<T>;
   end;
 
   TMock<T> = class(TInterfacedObject, IMock<T>)
@@ -66,8 +73,15 @@ begin
   FWhen  := TWhen<T>.Create(aProxy);
 end;
 
+function TSetup<T>.WillExecute(aMethod: TExecProc): IWhen<T>;
+begin
+  //FProxy.SetCurrentBehaviour(?)
+  Result := FWhen;
+end;
+
 function TSetup<T>.WillReturn(aValue: TValue): IWhen<T>;
 begin
+  FProxy.SetCurrentBehaviour(TBehaviourReturnValue<T>.Create(aValue));
   Result := FWhen;
 end;
 

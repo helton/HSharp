@@ -14,11 +14,13 @@ type
   strict private
     FProxyStrategy: IProxyStrategy<T>;
     FBehaviours: TList<IBehaviour<T>>;
+    FCurrentBehaviour: IBehaviour<T>;
   private
     function GetInstance: T;
   public
     constructor Create;
     procedure SetProxyStrategy(aProxyStrategy: IProxyStrategy<T>);
+    procedure SetCurrentBehaviour(aBehaviour: IBehaviour<T>);
     destructor Destroy; override;
   public
     procedure AddBehaviour(aBehaviour: IBehaviour<T>);
@@ -83,6 +85,11 @@ end;
 function TBaseProxy<T>.GetInstance: T;
 begin
   Result := FProxyStrategy.Instance;
+end;
+
+procedure TBaseProxy<T>.SetCurrentBehaviour(aBehaviour: IBehaviour<T>);
+begin
+  FCurrentBehaviour := aBehaviour;
 end;
 
 procedure TBaseProxy<T>.SetProxyStrategy(aProxyStrategy: IProxyStrategy<T>);
