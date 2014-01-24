@@ -9,6 +9,9 @@
         <Projects Include="WeakReferences\Tests\TestsWeakReferences.dproj">
             <Dependencies/>
         </Projects>
+        <Projects Include="Core\Tests\TestsCore.dproj">
+            <Dependencies/>
+        </Projects>
     </ItemGroup>
     <ProjectExtensions>
         <Borland.Personality>Default.Personality.12</Borland.Personality>
@@ -35,14 +38,23 @@
     <Target Name="TestsWeakReferences:Make">
         <MSBuild Projects="WeakReferences\Tests\TestsWeakReferences.dproj" Targets="Make"/>
     </Target>
+    <Target Name="TestsCore">
+        <MSBuild Projects="Core\Tests\TestsCore.dproj"/>
+    </Target>
+    <Target Name="TestsCore:Clean">
+        <MSBuild Projects="Core\Tests\TestsCore.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="TestsCore:Make">
+        <MSBuild Projects="Core\Tests\TestsCore.dproj" Targets="Make"/>
+    </Target>
     <Target Name="Build">
-        <CallTarget Targets="TestsMocks;TestsWeakReferences"/>
+        <CallTarget Targets="TestsMocks;TestsWeakReferences;TestsCore"/>
     </Target>
     <Target Name="Clean">
-        <CallTarget Targets="TestsMocks:Clean;TestsWeakReferences:Clean"/>
+        <CallTarget Targets="TestsMocks:Clean;TestsWeakReferences:Clean;TestsCore:Clean"/>
     </Target>
     <Target Name="Make">
-        <CallTarget Targets="TestsMocks:Make;TestsWeakReferences:Make"/>
+        <CallTarget Targets="TestsMocks:Make;TestsWeakReferences:Make;TestsCore:Make"/>
     </Target>
     <Import Project="$(BDS)\Bin\CodeGear.Group.Targets" Condition="Exists('$(BDS)\Bin\CodeGear.Group.Targets')"/>
 </Project>
