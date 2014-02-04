@@ -1,4 +1,4 @@
-program TestsMocks;
+program Tests.Mocks;
 {
 
   Delphi DUnit Test Project

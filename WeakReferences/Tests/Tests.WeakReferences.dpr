@@ -1,4 +1,4 @@
-program TestsCore;
+program Tests.WeakReferences;
 {
 
   Delphi DUnit Test Project
@@ -15,16 +15,11 @@ program TestsCore;
 {$ENDIF}
 
 uses
-  HSharp.Core.Arrays in '..\HSharp.Core.Arrays.pas',
-  HSharp.Core.Assert in '..\HSharp.Core.Assert.pas',
-  HSharp.Core.Benchmarker in '..\HSharp.Core.Benchmarker.pas',
-  HSharp.Core.Memoize in '..\HSharp.Core.Memoize.pas',
-  HSharp.Core.Nullable in '..\HSharp.Core.Nullable.pas',
-  HSharp.Core.Version in '..\HSharp.Core.Version.pas',
   DUnitTestRunner,
-  TestHSharp_Core_Version in 'TestHSharp_Core_Version.pas';
+  HSharp.WeakReference in '..\HSharp.WeakReference.pas',
+  TestHSharp_WeakReference in 'TestHSharp_WeakReference.pas';
 
-{$R *.RES}
+{$R *.res}
 
 begin
   ReportMemoryLeaksOnShutdown := True;

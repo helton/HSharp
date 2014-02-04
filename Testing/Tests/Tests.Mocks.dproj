@@ -1,6 +1,6 @@
 ﻿<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
     <PropertyGroup>
-        <ProjectGuid>{7176DF31-7420-4002-967E-6CA6A2D03B7C}</ProjectGuid>
+        <ProjectGuid>{EBDFACF0-8E42-4712-AEF6-A4DE5F08C088}</ProjectGuid>
         <ProjectVersion>15.1</ProjectVersion>
         <FrameworkType>None</FrameworkType>
         <Base>True</Base>
@@ -8,7 +8,7 @@
         <Platform Condition="'$(Platform)'==''">Win32</Platform>
         <TargetedPlatforms>1</TargetedPlatforms>
         <AppType>Console</AppType>
-        <MainSource>TestsWeakReferences.dpr</MainSource>
+        <MainSource>Tests.Mocks.dpr</MainSource>
     </PropertyGroup>
     <PropertyGroup Condition="'$(Config)'=='Base' or '$(Base)'!=''">
         <Base>true</Base>
@@ -45,8 +45,8 @@
         <Base>true</Base>
     </PropertyGroup>
     <PropertyGroup Condition="'$(Base)'!=''">
-        <DCC_UnitSearchPath>$(BDS)\Source\DUnit\src;$(DCC_UnitSearchPath)</DCC_UnitSearchPath>
         <DCC_Define>_CONSOLE_TESTRUNNER;$(DCC_Define)</DCC_Define>
+        <DCC_UnitSearchPath>$(BDS)\Source\DUnit\src;$(DCC_UnitSearchPath)</DCC_UnitSearchPath>
         <DCC_Namespace>System;Xml;Data;Datasnap;Web;Soap;Vcl;Vcl.Imaging;Vcl.Touch;Vcl.Samples;Vcl.Shell;$(DCC_Namespace)</DCC_Namespace>
         <DCC_DcuOutput>.</DCC_DcuOutput>
         <DCC_ExeOutput>.\$(Platform)\$(Config)</DCC_ExeOutput>
@@ -89,8 +89,17 @@
         <DelphiCompile Include="$(MainSource)">
             <MainSource>MainSource</MainSource>
         </DelphiCompile>
-        <DCCReference Include="..\HSharp.WeakReference.pas"/>
-        <DCCReference Include="TestHSharp_WeakReference.pas"/>
+        <DCCReference Include="TestHSharp_Mock.pas"/>
+        <DCCReference Include="..\HSharp.Behaviour.Interfaces.pas"/>
+        <DCCReference Include="..\HSharp.Behaviour.pas"/>
+        <DCCReference Include="..\HSharp.Exceptions.pas"/>
+        <DCCReference Include="..\HSharp.Mock.Interfaces.pas"/>
+        <DCCReference Include="..\HSharp.Mock.pas"/>
+        <DCCReference Include="..\HSharp.Proxy.Interfaces.pas"/>
+        <DCCReference Include="..\HSharp.Proxy.pas"/>
+        <DCCReference Include="..\HSharp.Stub.Interfaces.pas"/>
+        <DCCReference Include="..\HSharp.Stub.pas"/>
+        <DCCReference Include="..\..\WeakReferences\HSharp.WeakReference.pas"/>
         <BuildConfiguration Include="Release">
             <Key>Cfg_2</Key>
             <CfgParent>Base</CfgParent>
@@ -159,7 +168,7 @@
                     <VersionInfoKeys Name="theme"/>
                 </VersionInfoKeys>
                 <Source>
-                    <Source Name="MainSource">TestsWeakReferences.dpr</Source>
+                    <Source Name="MainSource">Tests.Mocks.dpr</Source>
                 </Source>
             </Delphi.Personality>
             <Deployment/>
