@@ -1,4 +1,4 @@
-{ Just to keep the high coupled dependencies of System.Generics.Collections in one place }
+{ Just to keep the tightly coupled dependencies of System.Generics.Collections in one place }
 
 unit HSharp.Collections.Interfaces.Internal;
 
