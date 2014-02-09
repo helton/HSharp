@@ -6,21 +6,6 @@ uses
   TestFramework;
 
 type
-  ITest = interface
-    ['{685733A0-33E2-43BF-AF4D-CDD128559E46}']
-    function Foo: string;
-  end;
-
-  TTest1 = class(TInterfacedObject, ITest)
-  public
-    function Foo: string;
-  end;
-
-  TTest2 = class(TInterfacedObject, ITest)
-  public
-    function Foo: string;
-  end;
-
   TestTServiceLocator = class(TTestCase)
   protected
     procedure SetUp; override;
@@ -39,6 +24,22 @@ implementation
 uses
   HSharp.Services,
   HSharp.Services.Exceptions;
+
+type
+  ITest = interface
+    ['{685733A0-33E2-43BF-AF4D-CDD128559E46}']
+    function Foo: string;
+  end;
+
+  TTest1 = class(TInterfacedObject, ITest)
+  public
+    function Foo: string;
+  end;
+
+  TTest2 = class(TInterfacedObject, ITest)
+  public
+    function Foo: string;
+  end;
 
 { TTest1 }
 
@@ -130,6 +131,6 @@ begin
 end;
 
 initialization
-  RegisterTest(TestTServiceLocator.Suite);
+  RegisterTest('HSharp.Services', TestTServiceLocator.Suite);
 end.
 
