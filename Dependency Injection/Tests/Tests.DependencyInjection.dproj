@@ -89,17 +89,22 @@
         <DelphiCompile Include="$(MainSource)">
             <MainSource>MainSource</MainSource>
         </DelphiCompile>
-        <DCCReference Include="..\HSharp.Services.pas"/>
-        <DCCReference Include="..\HSharp.Services.Exceptions.pas"/>
+        <DCCReference Include="..\HSharp.Container.pas"/>
+        <DCCReference Include="..\HSharp.Container.Exceptions.pas"/>
         <DCCReference Include="..\..\Collections\HSharp.Collections.Dictionary.pas"/>
         <DCCReference Include="..\..\Collections\HSharp.Collections.Interfaces.Internal.pas"/>
         <DCCReference Include="..\..\Collections\HSharp.Collections.Interfaces.pas"/>
         <DCCReference Include="..\..\Collections\HSharp.Collections.Internal.pas"/>
         <DCCReference Include="..\..\Collections\HSharp.Collections.List.pas"/>
         <DCCReference Include="..\..\Collections\HSharp.Collections.pas">
-            <Form>$R *.RES</Form>
+            <Form>TestHSharp_Container in &apos;TestHSharp_Container.pas&apos;;
+
+{$R *.RES</Form>
         </DCCReference>
-        <DCCReference Include="TestHSharp_Services.pas"/>
+        <DCCReference Include="TestHSharp_Container.pas"/>
+        <DCCReference Include="..\HSharp.Container.Types.pas"/>
+        <DCCReference Include="..\HSharp.Container.Interfaces.pas"/>
+        <DCCReference Include="..\HSharp.Container.Impl.pas"/>
         <BuildConfiguration Include="Release">
             <Key>Cfg_2</Key>
             <CfgParent>Base</CfgParent>
@@ -180,7 +185,10 @@
             <UnitTesting>
                 <TestFramework>DUnit / Delphi Win32</TestFramework>
                 <TestRunner>GUI</TestRunner>
+                <TestProjectName/>
+                <SourceProjectName/>
             </UnitTesting>
+            <ModelSupport>False</ModelSupport>
         </BorlandProject>
         <ProjectFileVersion>12</ProjectFileVersion>
     </ProjectExtensions>

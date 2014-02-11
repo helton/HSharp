@@ -3,19 +3,22 @@
         <ProjectGuid>{05F0E90C-D21C-406B-AEE2-981A2D9C16E0}</ProjectGuid>
     </PropertyGroup>
     <ItemGroup>
-        <Projects Include="Testing\Tests\Tests.Mocks.dproj">
-            <Dependencies/>
-        </Projects>
-        <Projects Include="WeakReferences\Tests\Tests.WeakReferences.dproj">
+        <Projects Include="Collections\Tests\Tests.Collections.dproj">
             <Dependencies/>
         </Projects>
         <Projects Include="Core\Tests\Tests.Core.dproj">
             <Dependencies/>
         </Projects>
-        <Projects Include="ORM\Tests\Tests.ORM.dproj">
+        <Projects Include="Dependency Injection\Tests\Tests.DependencyInjection.dproj">
             <Dependencies/>
         </Projects>
-        <Projects Include="Collections\Tests\Tests.Collections.dproj">
+        <Projects Include="WeakReferences\Tests\Tests.WeakReferences.dproj">
+            <Dependencies/>
+        </Projects>
+        <Projects Include="Testing\Tests\Tests.Mocks.dproj">
+            <Dependencies/>
+        </Projects>
+        <Projects Include="ORM\Tests\Tests.ORM.dproj">
             <Dependencies/>
         </Projects>
     </ItemGroup>
@@ -26,23 +29,14 @@
             <Default.Personality/>
         </BorlandProject>
     </ProjectExtensions>
-    <Target Name="Tests_Mocks">
-        <MSBuild Projects="Testing\Tests\Tests.Mocks.dproj"/>
+    <Target Name="Tests_Collections">
+        <MSBuild Projects="Collections\Tests\Tests.Collections.dproj"/>
     </Target>
-    <Target Name="Tests_Mocks:Clean">
-        <MSBuild Projects="Testing\Tests\Tests.Mocks.dproj" Targets="Clean"/>
+    <Target Name="Tests_Collections:Clean">
+        <MSBuild Projects="Collections\Tests\Tests.Collections.dproj" Targets="Clean"/>
     </Target>
-    <Target Name="Tests_Mocks:Make">
-        <MSBuild Projects="Testing\Tests\Tests.Mocks.dproj" Targets="Make"/>
-    </Target>
-    <Target Name="Tests_WeakReferences">
-        <MSBuild Projects="WeakReferences\Tests\Tests.WeakReferences.dproj"/>
-    </Target>
-    <Target Name="Tests_WeakReferences:Clean">
-        <MSBuild Projects="WeakReferences\Tests\Tests.WeakReferences.dproj" Targets="Clean"/>
-    </Target>
-    <Target Name="Tests_WeakReferences:Make">
-        <MSBuild Projects="WeakReferences\Tests\Tests.WeakReferences.dproj" Targets="Make"/>
+    <Target Name="Tests_Collections:Make">
+        <MSBuild Projects="Collections\Tests\Tests.Collections.dproj" Targets="Make"/>
     </Target>
     <Target Name="Tests_Core">
         <MSBuild Projects="Core\Tests\Tests.Core.dproj"/>
@@ -53,6 +47,33 @@
     <Target Name="Tests_Core:Make">
         <MSBuild Projects="Core\Tests\Tests.Core.dproj" Targets="Make"/>
     </Target>
+    <Target Name="Tests_DependencyInjection">
+        <MSBuild Projects="Dependency Injection\Tests\Tests.DependencyInjection.dproj"/>
+    </Target>
+    <Target Name="Tests_DependencyInjection:Clean">
+        <MSBuild Projects="Dependency Injection\Tests\Tests.DependencyInjection.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="Tests_DependencyInjection:Make">
+        <MSBuild Projects="Dependency Injection\Tests\Tests.DependencyInjection.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="Tests_WeakReferences">
+        <MSBuild Projects="WeakReferences\Tests\Tests.WeakReferences.dproj"/>
+    </Target>
+    <Target Name="Tests_WeakReferences:Clean">
+        <MSBuild Projects="WeakReferences\Tests\Tests.WeakReferences.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="Tests_WeakReferences:Make">
+        <MSBuild Projects="WeakReferences\Tests\Tests.WeakReferences.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="Tests_Mocks">
+        <MSBuild Projects="Testing\Tests\Tests.Mocks.dproj"/>
+    </Target>
+    <Target Name="Tests_Mocks:Clean">
+        <MSBuild Projects="Testing\Tests\Tests.Mocks.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="Tests_Mocks:Make">
+        <MSBuild Projects="Testing\Tests\Tests.Mocks.dproj" Targets="Make"/>
+    </Target>
     <Target Name="Tests_ORM">
         <MSBuild Projects="ORM\Tests\Tests.ORM.dproj"/>
     </Target>
@@ -62,23 +83,14 @@
     <Target Name="Tests_ORM:Make">
         <MSBuild Projects="ORM\Tests\Tests.ORM.dproj" Targets="Make"/>
     </Target>
-    <Target Name="Tests_Collections">
-        <MSBuild Projects="Collections\Tests\Tests.Collections.dproj"/>
-    </Target>
-    <Target Name="Tests_Collections:Clean">
-        <MSBuild Projects="Collections\Tests\Tests.Collections.dproj" Targets="Clean"/>
-    </Target>
-    <Target Name="Tests_Collections:Make">
-        <MSBuild Projects="Collections\Tests\Tests.Collections.dproj" Targets="Make"/>
-    </Target>
     <Target Name="Build">
-        <CallTarget Targets="Tests_Mocks;Tests_WeakReferences;Tests_Core;Tests_ORM;Tests_Collections"/>
+        <CallTarget Targets="Tests_Collections;Tests_Core;Tests_DependencyInjection;Tests_WeakReferences;Tests_Mocks;Tests_ORM"/>
     </Target>
     <Target Name="Clean">
-        <CallTarget Targets="Tests_Mocks:Clean;Tests_WeakReferences:Clean;Tests_Core:Clean;Tests_ORM:Clean;Tests_Collections:Clean"/>
+        <CallTarget Targets="Tests_Collections:Clean;Tests_Core:Clean;Tests_DependencyInjection:Clean;Tests_WeakReferences:Clean;Tests_Mocks:Clean;Tests_ORM:Clean"/>
     </Target>
     <Target Name="Make">
-        <CallTarget Targets="Tests_Mocks:Make;Tests_WeakReferences:Make;Tests_Core:Make;Tests_ORM:Make;Tests_Collections:Make"/>
+        <CallTarget Targets="Tests_Collections:Make;Tests_Core:Make;Tests_DependencyInjection:Make;Tests_WeakReferences:Make;Tests_Mocks:Make;Tests_ORM:Make"/>
     </Target>
     <Import Project="$(BDS)\Bin\CodeGear.Group.Targets" Condition="Exists('$(BDS)\Bin\CodeGear.Group.Targets')"/>
 </Project>
