@@ -127,7 +127,6 @@ var
 begin
   if FTypesDict.TryGetValue(InterfaceToGuid<I>, RegistrationInfo) then
     Result := RegistrationInfo.GetInstance.AsType<I>
-    //Supports(Clazz.Create, InterfaceToGuid<I>, Result)
   else
     raise ENotRegisteredType.Create(TypeInfo(I));
 end;
