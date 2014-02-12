@@ -29,7 +29,8 @@ uses
   TestHSharp_Container in 'TestHSharp_Container.pas',
   HSharp.Container.Types in '..\HSharp.Container.Types.pas',
   HSharp.Container.Interfaces in '..\HSharp.Container.Interfaces.pas',
-  HSharp.Container.Impl in '..\HSharp.Container.Impl.pas';
+  HSharp.Container.Impl in '..\HSharp.Container.Impl.pas',
+  HSharp.Core.Arrays in '..\..\Core\HSharp.Core.Arrays.pas';
 
 {$R *.RES}
 

@@ -72,9 +72,11 @@ type
   public
     constructor Create;
     procedure Reset;
-    function HasType<I: IInterface>: Boolean;
+    function HasType(aTypeInfo: PTypeInfo): Boolean; overload;
+    function HasType<I: IInterface>: Boolean; overload;
     function RegisterType<T: class, constructor>: IRegistrationType<T>;
-    function ResolveType<I: IInterface>: I;
+    function ResolveType<I: IInterface>: I; overload;
+    function ResolveType(aTypeInfo: PTypeInfo): IInterface; overload;
     procedure UnregisterType<I: IInterface>;
   end;
 
@@ -82,6 +84,8 @@ implementation
 
 uses
   System.SysUtils,
+  HSharp.Core.Arrays,
+  HSharp.Container,
   HSharp.Container.Exceptions;
 
 { TContainer }
@@ -111,6 +115,11 @@ begin
   FTypesDict := Collections.CreateDictionary<TGuid, IRegistrationInfo>;
 end;
 
+function TContainer.HasType(aTypeInfo: PTypeInfo): Boolean;
+begin
+  Result := FTypesDict.ContainsKey(GetTypeData(aTypeInfo).Guid);
+end;
+
 function TContainer.HasType<I>: Boolean;
 begin
   Result := FTypesDict.ContainsKey(InterfaceToGuid<I>);
@@ -119,6 +128,16 @@ end;
 function TContainer.InterfaceToGuid<I>: TGuid;
 begin
   Result := GetTypeData(TypeInfo(I)).Guid;
+end;
+
+function TContainer.ResolveType(aTypeInfo: PTypeInfo): IInterface;
+var
+  RegistrationInfo: IRegistrationInfo;
+begin
+  if FTypesDict.TryGetValue(GetTypeData(aTypeInfo).Guid, RegistrationInfo) then
+    Result := RegistrationInfo.GetInstance.AsType<IInterface>
+  else
+    raise ENotRegisteredType.Create(aTypeInfo);
 end;
 
 function TContainer.ResolveType<I>: I;
@@ -163,6 +182,58 @@ begin
 end;
 
 function TRegistrationInfo.GetInstance: TValue;
+
+  function GetNewInstance(AClass: TClass): TObject;
+  type
+    ArrayOfValue = array of TValue;
+  var
+    RttiType: TRttiType;
+    ConstructorMethod: TRttiMethod;
+
+    function DoConstructorInjection: TObject;
+    var
+      Parameters: ArrayOfValue;
+
+      function ResolveParametersDependencies: ArrayOfValue;
+      var
+        Parameter: TRttiParameter;
+        Instance: IInterface;
+        Value: TValue;
+      begin
+        for Parameter in ConstructorMethod.GetParameters do
+        begin
+          if (Parameter.ParamType.TypeKind = tkInterface) and
+             GlobalContainer.HasType(Parameter.ParamType.Handle) then
+          begin
+            Instance := GlobalContainer.ResolveType(Parameter.ParamType.Handle);
+            TValue.Make(@Instance, Parameter.ParamType.Handle, Value);
+            SetLength(Result, Length(Result) + 1);
+            Result[High(Result)] := Value;
+          end;
+  //        else
+  //          Result.Add(Default(Parameter.ParamType.Handle);
+        end;
+      end;
+
+    begin
+      Parameters := ResolveParametersDependencies;
+      Result     := ConstructorMethod.Invoke(RttiType.AsInstance.MetaclassType,
+                                             Parameters).AsObject;
+    end;
+
+  begin
+    Result := nil;
+    RttiType := TRttiContext.Create.GetType(AClass);
+    if Assigned(RttiType) then
+    begin
+      ConstructorMethod := RttiType.GetMethod('Create');
+      if Assigned(ConstructorMethod) then
+        Result := DoConstructorInjection;
+    end;
+    if not Assigned(Result)  then
+      Result := AClass.Create;
+  end;
+
 var
   Data: TObject;
 begin
@@ -171,14 +242,14 @@ begin
       begin
         if FInstance.IsEmpty then
         begin
-          Data := ClassImpl.Create;
+          Data := GetNewInstance(ClassImpl);
           TValue.Make(@Data, ClassTypeInfo, FInstance);
         end;
         Result := FInstance;
       end;
     Transient:
       begin
-        Data := ClassImpl.Create;
+        Data := GetNewInstance(ClassImpl);
         TValue.Make(@Data, ClassTypeInfo, Result);
       end;
     Delegation:

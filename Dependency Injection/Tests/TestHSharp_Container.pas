@@ -12,7 +12,6 @@ type
   published
     procedure AfterRegisterSingletonAndRequestAnInstance_ShouldReturnSameInstance;
     procedure AfterRegisterDelegateAndRequestAnInstance_ShouldCallDelegateMethod;
-
     procedure AfterRegisterAType_ResolveTypeShouldReturnACorrectInterfaceImplementation;
     procedure BeforeRegisterAType_HasTypeShouldReturnFalse;
     procedure AfterRegisterAType_HasTypeShouldReturnTrue;
@@ -20,6 +19,7 @@ type
     procedure TryGetAnInterfaceImplementationNotRegisteredYet_ShouldRaiseAnException;
     procedure TryUnregisterATypeNotRegisteredYet_ShouldRaiseAnException;
     procedure TryRegisterTwoImplementationsToSameInterface_ShouldRaiseAnException;
+    procedure WhenCreateAnInstanceWithDependenciesOnConstructor_ShouldResolveParametersDependencies;
   end;
 
 implementation
@@ -34,6 +34,11 @@ type
     function Foo: string;
   end;
 
+  IFoo = interface
+    ['{D94E67FF-B09C-49BF-8315-3457B4EAA709}']
+    function GetDependency: ITest;
+  end;
+
   TTest1 = class(TInterfacedObject, ITest)
   public
     function Foo: string;
@@ -42,6 +47,14 @@ type
   TTest2 = class(TInterfacedObject, ITest)
   public
     function Foo: string;
+  end;
+
+  TFoo = class(TInterfacedObject, IFoo)
+  strict private
+    FDependency: ITest;
+  public
+    constructor Create(aDependency: ITest); reintroduce;
+    function GetDependency: ITest;
   end;
 
 { TTest1 }
@@ -56,6 +69,14 @@ end;
 function TTest2.Foo:  string;
 begin
   Result := 'TTest2.Foo called';
+end;
+
+{ TFoo }
+
+constructor TFoo.Create(aDependency: ITest);
+begin
+  inherited Create;
+  FDependency := aDependency;
 end;
 
 { TestTGlobalContainer }
@@ -113,6 +134,17 @@ begin
   CheckSame(ReturnedValue, ResolvedType);
 end;
 
+procedure TestGlobalContainer.WhenCreateAnInstanceWithDependenciesOnConstructor_ShouldResolveParametersDependencies;
+var
+  ResolvedType: IFoo;
+begin
+  GlobalContainer.RegisterType<TTest1>.Implements(ITest).AsTransient;
+  GlobalContainer.RegisterType<TFoo>.Implements(IFoo).AsTransient;
+  ResolvedType := GlobalContainer.ResolveType<IFoo>;
+  CheckNotNull(ResolvedType.GetDependency, 'Dependency not resolved by "constructor injection"');
+  CheckIs(TObject(ResolvedType.GetDependency), TTest1, 'Instance is not of type expected');
+end;
+
 procedure TestGlobalContainer.TryGetAnInterfaceImplementationNotRegisteredYet_ShouldRaiseAnException;
 begin
   StartExpectingException(ENotRegisteredType);
@@ -157,6 +189,11 @@ begin
           'Wrong interface implementation returned after register TTest2 as ' +
           'implementation of ITest');
   CheckEquals('TTest2.Foo called', I.Foo);
+end;
+
+function TFoo.GetDependency: ITest;
+begin
+  Result := FDependency;
 end;
 
 initialization
