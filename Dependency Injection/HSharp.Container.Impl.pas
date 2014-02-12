@@ -185,16 +185,16 @@ function TRegistrationInfo.GetInstance: TValue;
 
   function GetNewInstance(AClass: TClass): TObject;
   type
-    ArrayOfValue = array of TValue;
+    TArrayOfValue = array of TValue;
   var
     RttiType: TRttiType;
     ConstructorMethod: TRttiMethod;
 
     function DoConstructorInjection: TObject;
     var
-      Parameters: ArrayOfValue;
+      Parameters: TArrayOfValue;
 
-      function ResolveParametersDependencies: ArrayOfValue;
+      function ResolveParametersDependencies: TArrayOfValue;
       var
         Parameter: TRttiParameter;
         Instance: IInterface;
@@ -211,7 +211,7 @@ function TRegistrationInfo.GetInstance: TValue;
             Result[High(Result)] := Value;
           end;
   //        else
-  //          Result.Add(Default(Parameter.ParamType.Handle);
+  //          Result.Add(Default(Parameter.ParamType.Handle));
         end;
       end;
 
@@ -230,7 +230,7 @@ function TRegistrationInfo.GetInstance: TValue;
       if Assigned(ConstructorMethod) then
         Result := DoConstructorInjection;
     end;
-    if not Assigned(Result)  then
+    if not Assigned(Result) then
       Result := AClass.Create;
   end;
 
