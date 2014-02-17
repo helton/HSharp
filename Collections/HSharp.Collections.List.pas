@@ -35,17 +35,17 @@ implementation
 
 function TBaseInterfacedList<T>.QueryInterface(const IID: TGUID; out Obj): HResult;
 begin
-  InternalQueryInterface(Self, IID, Obj);
+  Result := InternalQueryInterface(Self, IID, Obj);
 end;
 
 function TBaseInterfacedList<T>._AddRef: Integer;
 begin
-  Internal_AddRef(FRefCount);
+  Result := Internal_AddRef(FRefCount);
 end;
 
 function TBaseInterfacedList<T>._Release: Integer;
 begin
-  Internal_Release(FRefCount, TObject(Self));
+  Result := Internal_Release(FRefCount, TObject(Self));
 end;
 
 { TInterfacedListInternal<T> }

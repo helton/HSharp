@@ -145,7 +145,7 @@ begin
 end;
 
 initialization
-  RegisterTest('HSharp.Weak', TestWeak.Suite);
+  RegisterTest('HSharp.WeakReference', TestWeak.Suite);
 
 end.
 
