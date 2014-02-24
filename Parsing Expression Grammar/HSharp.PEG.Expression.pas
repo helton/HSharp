@@ -25,7 +25,7 @@ type
     function ApplyExpression(const aContext: IContext): Boolean; virtual; abstract;
   public
     function IsMatch(const aContext: IContext): Boolean;
-    procedure Match(const aContext: IContext);
+    function Match(const aContext: IContext): Boolean;
     function AsString: string; virtual; abstract;
     property Text: string read GetText;
   end;
@@ -124,6 +124,7 @@ type
     function ApplyExpression(const aContext: IContext): Boolean; override;
   public
     constructor Create(const aExpression: IExpression; aMin: Integer); reintroduce;
+    function AsString: string; override;
   end;
 
   // An expression wrapper like the repetition {min,max} in regexes.
@@ -134,18 +135,21 @@ type
     function ApplyExpression(const aContext: IContext): Boolean; override;
   public
     constructor Create(const aExpression: IExpression; aMin, aMax: Integer); reintroduce;
+    function AsString: string; override;
   end;
 
   // An expression wrapper like the * quantifier in regexes
   TRepeatZeroOrMoreExpression = class(TRepeatAtLeastExpression)
   public
     constructor Create(const aExpression: IExpression); reintroduce;
+    function AsString: string; override;
   end;
 
   // An expression wrapper like the + quantifier in regexes.
   TRepeatOneOrMoreExpression = class(TRepeatAtLeastExpression)
   public
     constructor Create(const aExpression: IExpression); reintroduce;
+    function AsString: string; override;
   end;
 
   // An expression that succeeds whether or not the contained one does
@@ -154,15 +158,19 @@ type
   TRepeatOptionalExpression = class(TRepeatRangeExpression)
   public
     constructor Create(const aExpression: IExpression); reintroduce;
+    function AsString: string; override;
   end;
 
   // An expression wrapper like the repetition {times} in regexes.
   TRepeatExactlyExpression = class(TRepeatRangeExpression)
+  strict private
+    FTimes: Integer;
   public
     constructor Create(const aExpression: IExpression; aTimes: Integer); reintroduce;
+    function AsString: string; override;
   end;
 
-  // An expression wrapper like the repetition {times} in regexes.
+  // An expression wrapper like the repetition {0,max} in regexes.
   TRepeatUpToExpression = class(TRepeatRangeExpression)
   public
     constructor Create(const aExpression: IExpression; aMax: Integer); reintroduce;
@@ -208,12 +216,10 @@ begin
   Result := FText;
 end;
 
-procedure TExpression.Match(const aContext: IContext);
-var
-  Success: Boolean;
+function TExpression.Match(const aContext: IContext): Boolean;
 begin
-  Success := ApplyExpression(aContext);
-  if not Success then
+  Result := ApplyExpression(aContext);
+  if not Result then
     raise EMatchError.Create('Can''t match text'); {TODO -oHelton -cImprove : Improve error message with more details}
 end;
 
@@ -305,8 +311,7 @@ begin
   Result := False;
   for Expression in Expressions do
   begin
-    Result := Expression.IsMatch(aContext);
-    Expression.Match(aContext);
+    Result := Expression.Match(aContext);
     SetText(Text + Expression.Text);
   end;
 end;
@@ -315,6 +320,7 @@ function TSequenceExpression.AsString: string;
 var
   Expression: IExpression;
 begin
+  Result := '';
   for Expression in Expressions do
   begin
     if Result.IsEmpty then
@@ -396,12 +402,22 @@ end;
 
 { TRepeatZeroOrMoreExpression }
 
+function TRepeatZeroOrMoreExpression.AsString: string;
+begin
+  Result := Expression.AsString + '*';
+end;
+
 constructor TRepeatZeroOrMoreExpression.Create(const aExpression: IExpression);
 begin
   inherited Create(aExpression, 0);
 end;
 
 { TRepeatOneOrMoreExpression }
+
+function TRepeatOneOrMoreExpression.AsString: string;
+begin
+  Result := Expression.AsString + '+';
+end;
 
 constructor TRepeatOneOrMoreExpression.Create(const aExpression: IExpression);
 begin
@@ -427,6 +443,11 @@ begin
   end;
 end;
 
+function TRepeatRangeExpression.AsString: string;
+begin
+  Result := inherited + '{' + FMin.ToString + ',' + FMax.ToString + '}';
+end;
+
 constructor TRepeatRangeExpression.Create(const aExpression: IExpression; aMin,
   aMax: Integer);
 begin
@@ -443,11 +464,17 @@ end;
 
 { TRepeatExactlyExpression }
 
+function TRepeatExactlyExpression.AsString: string;
+begin
+  Result := Expression.AsString + '{' + FTimes.ToString + '}';
+end;
+
 constructor TRepeatExactlyExpression.Create(const aExpression: IExpression;
   aTimes: Integer);
 begin
   inherited Create(aExpression, aTimes, aTimes);
-  if aTimes < 0 then
+  FTimes := aTimes;
+  if FTimes < 0 then
     raise EArgumentException.Create('Times should be positive');
 end;
 
@@ -465,6 +492,11 @@ begin
     Expression.Match(aContext);
 end;
 
+function TRepeatAtLeastExpression.AsString: string;
+begin
+  Result := inherited + '{' + FMin.ToString + ',}';
+end;
+
 constructor TRepeatAtLeastExpression.Create(const aExpression: IExpression;
   aMin: Integer);
 begin
@@ -475,6 +507,11 @@ begin
 end;
 
 { TRepeatOptionalExpression }
+
+function TRepeatOptionalExpression.AsString: string;
+begin
+  Result := Expression.AsString + '?';
+end;
 
 constructor TRepeatOptionalExpression.Create(const aExpression: IExpression);
 begin
@@ -496,8 +533,7 @@ end;
 function TRuleReferenceExpression.ApplyExpression(
   const aContext: IContext): Boolean;
 begin
-  Result := FRule.Expression.IsMatch(aContext);
-  FRule.Expression.Match(aContext);
+  Result := FRule.Expression.Match(aContext);
 end;
 
 function TRuleReferenceExpression.AsString: string;

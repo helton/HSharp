@@ -9,7 +9,7 @@ type
   IExpression = interface
     ['{62F4F422-597B-4B06-AED9-109236BCF845}']
     function IsMatch(const aContext: IContext): Boolean;
-    procedure Match(const aContext: IContext);
+    function Match(const aContext: IContext): Boolean;
     function GetText: string;
     property Text: string read GetText;
     function AsString: string;

@@ -375,14 +375,43 @@ begin
      TLiteralExpression.Create(' '),
      TRegexExpression.Create('[0-9]+', [TRegExOption.roIgnorePatternSpace]),
      TLiteralExpression.Create(' '),
+     TRepeatZeroOrMoreExpression.Create(TLiteralExpression.Create('text that will be repeated')),
+     TRepeatOneOrMoreExpression.Create(TLiteralExpression.Create('text that will be repeated')),
+     TRepeatOptionalExpression.Create(TLiteralExpression.Create('text that will be repeated')),
+     TRepeatAtLeastExpression.Create(TLiteralExpression.Create('text that will be repeated'), 2),
+     TRepeatRangeExpression.Create(TLiteralExpression.Create('text that will be repeated'), 3, 8),
+     TRepeatExactlyExpression.Create(TLiteralExpression.Create('text that will be repeated'), 7),
+     TRepeatUpToExpression.Create(TLiteralExpression.Create('text that will be repeated'), 4),
      TLookahedExpression.Create(TLiteralExpression.Create('lookahead')),
      TRegexExpression.Create('[a-z]+', [TRegExOption.roIgnoreCase]),
      TNegativeLookaheadExpression.Create(TLiteralExpression.Create('another_literal_text')),
      TRuleReferenceExpression.Create(InternalRule),
-     TRegexExpression.Create('[0-5]+', [TRegExOption.roExplicitCapture])
+     TRegexExpression.Create('[0-5]+', [TRegExOption.roExplicitCapture]),
+     TSequenceExpression.Create( //fix error...
+       [TLiteralExpression.Create('literal_text'),
+        TRegexExpression.Create('[0-9]+'),
+        TRegexExpression.Create('[a-z]+', [TRegExOption.roIgnoreCase])
+       ]
+     )
     ]
   );
-  CheckEquals('OneOfRule = "literal_text" / " " / ~"[0-9]+"p / " " / &"lookahead" / ~"[a-z]+"i / !"another_literal_text" / internal_rule / ~"[0-5]+"e',
+  CheckEquals('OneOfRule = "literal_text" / ' +
+                           '" " / ' +
+                           '~"[0-9]+"p / ' +
+                           '" " / ' +
+                           '"text that will be repeated"* / ' +
+                           '"text that will be repeated"+ / ' +
+                           '"text that will be repeated"? / ' +
+                           '"text that will be repeated"{2,} / ' +
+                           '"text that will be repeated"{3,8} / ' +
+                           '"text that will be repeated"{7} / ' +
+                           '"text that will be repeated"{0,4} / ' +
+                           '&"lookahead" / ' +
+                           '~"[a-z]+"i / ' +
+                           '!"another_literal_text" / ' +
+                           'internal_rule / '+
+                           '~"[0-5]+"e / ' +
+                           '"literal_text" ~"[0-9]+" ~"[a-z]+"i',
               Rule.AsString, 'AsString of Rule should be showed correctly');
 end;
 
