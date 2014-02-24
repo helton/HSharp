@@ -1,4 +1,5 @@
 (  ) - Improve the unit tests
+(  ) - Improve error message with more details
 (OK) - Add quantifiers expressions
   - OptionalExpression
   - OneOrMoreExpression

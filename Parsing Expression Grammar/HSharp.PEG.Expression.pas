@@ -21,7 +21,7 @@ type
     FText: string;
   strict protected
     function GetText: string;
-    procedure SetText(aText: string); //can't be used as a set function to Text property;
+    procedure SetText(aText: string); //can't be used as a set function to Text property
     function ApplyExpression(const aContext: IContext): Boolean; virtual; abstract;
   public
     function IsMatch(const aContext: IContext): Boolean;
