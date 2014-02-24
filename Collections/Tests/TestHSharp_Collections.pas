@@ -13,6 +13,7 @@ type
   published
     procedure WhenCreateAList_ShouldReturnAValidInstance;
     procedure WhenCreateADictionary_ShouldReturnAValidInstance;
+    procedure WhenCreateAStack_ShouldReturnAValidInstance;
 //    procedure AfterUse_ListShouldBeDestroyed;
 //    procedure AfterUse_DictionaryShouldBeDestroyed;
   end;
@@ -79,6 +80,14 @@ var
 begin
   List := Collections.CreateList<string>;
   CheckTrue(Assigned(List), 'Correctly List was not created');
+end;
+
+procedure TestCollections.WhenCreateAStack_ShouldReturnAValidInstance;
+var
+  Stack: IStack<string>;
+begin
+  Stack := Collections.CreateStack<string>;
+  CheckTrue(Assigned(Stack), 'Correctly Stack was not created');
 end;
 
 initialization

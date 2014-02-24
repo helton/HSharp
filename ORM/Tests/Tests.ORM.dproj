@@ -89,19 +89,8 @@
         <DelphiCompile Include="$(MainSource)">
             <MainSource>MainSource</MainSource>
         </DelphiCompile>
-        <DCCReference Include="..\HSharp.Mapping.Exceptions.pas"/>
-        <DCCReference Include="..\HSharp.Mapping.Attributes.pas"/>
         <DCCReference Include="TestHSharp_ORM.pas"/>
         <DCCReference Include="Tests.Entities.pas"/>
-        <DCCReference Include="..\HSharp.Engine.ObjectManager.pas"/>
-        <DCCReference Include="..\HSharp.Mapping.Metadata.pas"/>
-        <DCCReference Include="..\HSharp.Patterns.UnitOfWork.pas"/>
-        <DCCReference Include="..\..\Core\HSharp.Core.Arrays.pas"/>
-        <DCCReference Include="..\HSharp.Database.Connection.Factory.pas"/>
-        <DCCReference Include="..\HSharp.Database.Connection.Firebird.pas"/>
-        <DCCReference Include="..\HSharp.Database.Connection.SQLite.pas"/>
-        <DCCReference Include="..\HSharp.Database.Connection.Interfaces.pas"/>
-        <DCCReference Include="..\HSharp.Database.Types.pas"/>
         <BuildConfiguration Include="Release">
             <Key>Cfg_2</Key>
             <CfgParent>Base</CfgParent>

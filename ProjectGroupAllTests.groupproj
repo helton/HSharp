@@ -24,6 +24,9 @@
         <Projects Include="Design Patterns\Tests\Tests.DesignPatterns.dproj">
             <Dependencies/>
         </Projects>
+        <Projects Include="Parsing Expression Grammar\Tests\Tests.PEG.dproj">
+            <Dependencies/>
+        </Projects>
     </ItemGroup>
     <ProjectExtensions>
         <Borland.Personality>Default.Personality.12</Borland.Personality>
@@ -95,14 +98,23 @@
     <Target Name="Tests_DesignPatterns:Make">
         <MSBuild Projects="Design Patterns\Tests\Tests.DesignPatterns.dproj" Targets="Make"/>
     </Target>
+    <Target Name="Tests_PEG">
+        <MSBuild Projects="Parsing Expression Grammar\Tests\Tests.PEG.dproj"/>
+    </Target>
+    <Target Name="Tests_PEG:Clean">
+        <MSBuild Projects="Parsing Expression Grammar\Tests\Tests.PEG.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="Tests_PEG:Make">
+        <MSBuild Projects="Parsing Expression Grammar\Tests\Tests.PEG.dproj" Targets="Make"/>
+    </Target>
     <Target Name="Build">
-        <CallTarget Targets="Tests_Collections;Tests_Core;Tests_DependencyInjection;Tests_WeakReferences;Tests_Mocks;Tests_ORM;Tests_DesignPatterns"/>
+        <CallTarget Targets="Tests_Collections;Tests_Core;Tests_DependencyInjection;Tests_WeakReferences;Tests_Mocks;Tests_ORM;Tests_DesignPatterns;Tests_PEG"/>
     </Target>
     <Target Name="Clean">
-        <CallTarget Targets="Tests_Collections:Clean;Tests_Core:Clean;Tests_DependencyInjection:Clean;Tests_WeakReferences:Clean;Tests_Mocks:Clean;Tests_ORM:Clean;Tests_DesignPatterns:Clean"/>
+        <CallTarget Targets="Tests_Collections:Clean;Tests_Core:Clean;Tests_DependencyInjection:Clean;Tests_WeakReferences:Clean;Tests_Mocks:Clean;Tests_ORM:Clean;Tests_DesignPatterns:Clean;Tests_PEG:Clean"/>
     </Target>
     <Target Name="Make">
-        <CallTarget Targets="Tests_Collections:Make;Tests_Core:Make;Tests_DependencyInjection:Make;Tests_WeakReferences:Make;Tests_Mocks:Make;Tests_ORM:Make;Tests_DesignPatterns:Make"/>
+        <CallTarget Targets="Tests_Collections:Make;Tests_Core:Make;Tests_DependencyInjection:Make;Tests_WeakReferences:Make;Tests_Mocks:Make;Tests_ORM:Make;Tests_DesignPatterns:Make;Tests_PEG:Make"/>
     </Target>
     <Import Project="$(BDS)\Bin\CodeGear.Group.Targets" Condition="Exists('$(BDS)\Bin\CodeGear.Group.Targets')"/>
 </Project>

@@ -89,7 +89,6 @@
         <DelphiCompile Include="$(MainSource)">
             <MainSource>MainSource</MainSource>
         </DelphiCompile>
-        <DCCReference Include="..\HSharp.WeakReference.pas"/>
         <DCCReference Include="TestHSharp_WeakReference.pas"/>
         <BuildConfiguration Include="Release">
             <Key>Cfg_2</Key>

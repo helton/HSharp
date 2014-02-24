@@ -16,13 +16,7 @@ program Tests.Collections;
 
 uses
   DUnitTestRunner,
-  HSharp.Collections in '..\HSharp.Collections.pas',
-  HSharp.Collections.Interfaces in '..\HSharp.Collections.Interfaces.pas',
-  TestHSharp_Collections in 'TestHSharp_Collections.pas',
-  HSharp.Collections.Internal in '..\HSharp.Collections.Internal.pas',
-  HSharp.Collections.List in '..\HSharp.Collections.List.pas',
-  HSharp.Collections.Dictionary in '..\HSharp.Collections.Dictionary.pas',
-  HSharp.Collections.Interfaces.Internal in '..\HSharp.Collections.Interfaces.Internal.pas';
+  TestHSharp_Collections in 'TestHSharp_Collections.pas';
 
 {$R *.RES}
 

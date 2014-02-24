@@ -56,6 +56,17 @@ type
     function ToArray: TArray<TPair<TKey,TValue>>;
   end;
 
+  IStack<T> = interface(IStackInternal<T>)
+    ['{99C20C75-B994-41F8-BCF8-C66E4BA07DD6}']
+    procedure Clear;
+    procedure Push(const Value: T);
+    function Pop: T;
+    function Peek: T;
+    function Extract: T;
+    procedure TrimExcess;
+    function ToArray: TArray<T>;
+  end;
+
 implementation
 
 end.

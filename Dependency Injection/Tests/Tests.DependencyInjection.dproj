@@ -89,23 +89,7 @@
         <DelphiCompile Include="$(MainSource)">
             <MainSource>MainSource</MainSource>
         </DelphiCompile>
-        <DCCReference Include="..\HSharp.Container.pas"/>
-        <DCCReference Include="..\HSharp.Container.Exceptions.pas"/>
-        <DCCReference Include="..\..\Collections\HSharp.Collections.Dictionary.pas"/>
-        <DCCReference Include="..\..\Collections\HSharp.Collections.Interfaces.Internal.pas"/>
-        <DCCReference Include="..\..\Collections\HSharp.Collections.Interfaces.pas"/>
-        <DCCReference Include="..\..\Collections\HSharp.Collections.Internal.pas"/>
-        <DCCReference Include="..\..\Collections\HSharp.Collections.List.pas"/>
-        <DCCReference Include="..\..\Collections\HSharp.Collections.pas">
-            <Form>TestHSharp_Container in &apos;TestHSharp_Container.pas&apos;;
-
-{$R *.RES</Form>
-        </DCCReference>
         <DCCReference Include="TestHSharp_Container.pas"/>
-        <DCCReference Include="..\HSharp.Container.Types.pas"/>
-        <DCCReference Include="..\HSharp.Container.Interfaces.pas"/>
-        <DCCReference Include="..\HSharp.Container.Impl.pas"/>
-        <DCCReference Include="..\..\Core\HSharp.Core.Arrays.pas"/>
         <BuildConfiguration Include="Release">
             <Key>Cfg_2</Key>
             <CfgParent>Base</CfgParent>

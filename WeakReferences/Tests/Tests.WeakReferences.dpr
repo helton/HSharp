@@ -16,7 +16,6 @@ program Tests.WeakReferences;
 
 uses
   DUnitTestRunner,
-  HSharp.WeakReference in '..\HSharp.WeakReference.pas',
   TestHSharp_WeakReference in 'TestHSharp_WeakReference.pas';
 
 {$R *.res}

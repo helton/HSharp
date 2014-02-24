@@ -1,0 +1,21 @@
+(  ) - Improve the unit tests
+(OK) - Add quantifiers expressions
+  - OptionalExpression
+  - OneOrMoreExpression
+  - ZeroOrMoreExpression
+(  ) - Add TRuleReferenceExpression
+(  ) - Add anottaded gramamr with custom attributes
+  ex.:
+    TMyLanguageVisitor = class(TBaseVisitor)
+    public
+      [DefaultRule]
+      [Rule('ID <- ~"[a-z]+"il')]
+      function ID_Rule(const aNodes: array of INode): TValue;
+(  ) - TBaseVisitor should build the grammar based on custom attributes
+(  ) - Add aNodes
+(  ) - Add LazyEvaluation support (ex. IF statement cannot be computed until the user wants to)
+(  ) - Add EOF in IContext
+(  ) - If after parse and context.EOF -> raise exception 
+(??) - Add label to subexpressions:
+  ex.: 'ID <- ~"[a-z_]+"il<id_part1> ~"[a-z0-9_]"il<id_part2>'
+(  ) - Add match count on expression (or node?)

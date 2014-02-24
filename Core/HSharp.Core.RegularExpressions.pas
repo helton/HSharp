@@ -1,0 +1,145 @@
+unit HSharp.Core.RegularExpressions;
+
+interface
+
+uses
+  System.SysUtils,
+  System.Rtti,
+  System.TypInfo,
+  System.RegularExpressions,
+  System.RegularExpressionsCore,
+  HSharp.Core.Types;
+
+type
+  TRegExHelper = record helper for TRegEx
+    function GetPerlRegEx: TPerlRegEx;
+    function GetPattern: String;
+    function GetInput: String;
+  end;
+
+  TMatchHelper = record helper for TMatch
+    function GetPerlRegEx: TPerlRegEx;
+    function GetTextPosition: TTextPosition;
+  end;
+
+  TGroupHelper = record helper for TGroupCollection
+    function GetPerlRegEx: TPerlRegEx;
+    function GetTextPosition(AGroup: TGroup): TTextPosition;
+  end;
+
+  function GetTextPositionByAbsoluteIndex(AText: String; AAbsoluteIndex: Integer): TTextPosition;
+
+implementation
+
+function GetTextPositionByAbsoluteIndex(AText: String; AAbsoluteIndex: Integer): TTextPosition;
+var
+  TextAsArray: TArray<String>;
+  Line: String;
+  LineNumber, CurrentIndex, NextIndex: Integer;
+begin
+  TextAsArray  := AText.Replace(sLineBreak, #$A).Split([#$A]);
+  CurrentIndex := 0;
+  LineNumber   := 1;
+  for Line in TextAsArray do
+  begin
+    NextIndex := CurrentIndex + Line.Length;
+    if (AAbsoluteIndex >= CurrentIndex) and
+       (AAbsoluteIndex <= NextIndex) then
+    begin
+      Result.Line   := LineNumber;
+      Result.Column := AAbsoluteIndex - CurrentIndex;
+      Break;
+    end;
+    CurrentIndex := NextIndex + Length(sLineBreak);
+    if CurrentIndex > AAbsoluteIndex then {next position is a sLineBreak }
+    begin
+      Result.Line   := LineNumber;
+      Result.Column := AAbsoluteIndex;
+      Break;
+    end;
+    Inc(LineNumber);
+  end;
+end;
+
+function InternalGetPerlRegEx(ATypeInfo, AInstance: Pointer): TPerlRegEx;
+var
+  RttiField: TRttiField;
+  Value: TValue;
+begin
+  RttiField := TRttiContext.Create.GetType(ATypeInfo).GetField('FRegEx');
+  if Assigned(RttiField) then
+  begin
+    Value := RttiField.GetValue(AInstance);
+    Value.TryAsType<TPerlRegEx>(Result);
+  end;
+end;
+
+function InternalGetPerlRegExFromNotifier(ATypeInfo, AInstance: Pointer): TPerlRegEx;
+var
+  RttiField: TRttiField;
+  Value: TValue;
+  InterfaceReference: IInterface;
+begin
+  Result    := nil;
+  RttiField := TRttiContext.Create.GetType(ATypeInfo).GetField('FNotifier');
+  if Assigned(RttiField) then
+  begin
+    Value := RttiField.GetValue(AInstance);
+    Value.TryAsType<IInterface>(InterfaceReference);
+    if Assigned(InterfaceReference) then
+      Result := InternalGetPerlRegEx(TInterfacedObject(InterfaceReference).ClassInfo,
+                                     TInterfacedObject(InterfaceReference));
+  end;
+end;
+
+{ TRegExHelper }
+
+function TRegExHelper.GetInput: String;
+var
+  PerlRegEx: TPerlRegEx;
+begin
+  PerlRegEx := GetPerlRegEx;
+  if Assigned(PerlRegEx) then
+    Result := PerlRegEx.Subject;
+end;
+
+function TRegExHelper.GetPattern: String;
+var
+  PerlRegEx: TPerlRegEx;
+begin
+  PerlRegEx := GetPerlRegEx;
+  if Assigned(PerlRegEx) then
+    Result := PerlRegEx.RegEx;
+end;
+
+function TRegExHelper.GetPerlRegEx: TPerlRegEx;
+begin
+  Result := InternalGetPerlRegEx(TypeInfo(TRegEx), @Self);
+end;
+
+{ TMatchHelper }
+
+function TMatchHelper.GetPerlRegEx: TPerlRegEx;
+begin
+  Result := InternalGetPerlRegExFromNotifier(TypeInfo(TMatch), @Self);
+end;
+
+function TMatchHelper.GetTextPosition: TTextPosition;
+begin
+  Result := GetTextPositionByAbsoluteIndex(GetPerlRegEx.Subject, Self.Index);
+end;
+
+{ TGroupHelper }
+
+function TGroupHelper.GetPerlRegEx: TPerlRegEx;
+begin
+  Result := InternalGetPerlRegExFromNotifier(TypeInfo(TGroupCollection), @Self);
+end;
+
+function TGroupHelper.GetTextPosition(AGroup: TGroup): TTextPosition;
+begin
+  Result := GetTextPositionByAbsoluteIndex(GetPerlRegEx.Subject, AGroup.Index);
+end;
+
+end.
+

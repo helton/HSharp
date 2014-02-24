@@ -89,19 +89,7 @@
         <DelphiCompile Include="$(MainSource)">
             <MainSource>MainSource</MainSource>
         </DelphiCompile>
-        <DCCReference Include="..\HSharp.Core.Arrays.pas"/>
-        <DCCReference Include="..\HSharp.Core.Assert.pas"/>
-        <DCCReference Include="..\HSharp.Core.Benchmarker.pas"/>
-        <DCCReference Include="..\HSharp.Core.Memoize.pas"/>
-        <DCCReference Include="..\HSharp.Core.Nullable.pas"/>
-        <DCCReference Include="..\HSharp.Core.Version.pas"/>
         <DCCReference Include="TestHSharp_Core_Version.pas"/>
-        <DCCReference Include="..\..\Collections\HSharp.Collections.Dictionary.pas"/>
-        <DCCReference Include="..\..\Collections\HSharp.Collections.Interfaces.Internal.pas"/>
-        <DCCReference Include="..\..\Collections\HSharp.Collections.Interfaces.pas"/>
-        <DCCReference Include="..\..\Collections\HSharp.Collections.Internal.pas"/>
-        <DCCReference Include="..\..\Collections\HSharp.Collections.List.pas"/>
-        <DCCReference Include="..\..\Collections\HSharp.Collections.pas"/>
         <BuildConfiguration Include="Release">
             <Key>Cfg_2</Key>
             <CfgParent>Base</CfgParent>

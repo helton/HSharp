@@ -89,16 +89,7 @@
         <DelphiCompile Include="$(MainSource)">
             <MainSource>MainSource</MainSource>
         </DelphiCompile>
-        <DCCReference Include="..\HSharp.PEG.pas"/>
         <DCCReference Include="TestHSharp_PEG.pas"/>
-        <DCCReference Include="..\..\WeakReferences\HSharp.WeakReference.pas"/>
-        <DCCReference Include="..\..\Collections\HSharp.Collections.Dictionary.pas"/>
-        <DCCReference Include="..\..\Collections\HSharp.Collections.Interfaces.Internal.pas"/>
-        <DCCReference Include="..\..\Collections\HSharp.Collections.Interfaces.pas"/>
-        <DCCReference Include="..\..\Collections\HSharp.Collections.Internal.pas"/>
-        <DCCReference Include="..\..\Collections\HSharp.Collections.List.pas"/>
-        <DCCReference Include="..\..\Collections\HSharp.Collections.pas"/>
-        <DCCReference Include="..\HSharp.PEG.Bootstrap.pas"/>
         <BuildConfiguration Include="Release">
             <Key>Cfg_2</Key>
             <CfgParent>Base</CfgParent>
@@ -179,6 +170,8 @@
             <UnitTesting>
                 <TestFramework>DUnit / Delphi Win32</TestFramework>
                 <TestRunner>GUI</TestRunner>
+                <TestProjectName/>
+                <SourceProjectName/>
             </UnitTesting>
         </BorlandProject>
         <ProjectFileVersion>12</ProjectFileVersion>

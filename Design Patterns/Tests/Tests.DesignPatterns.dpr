@@ -16,8 +16,7 @@ program Tests.DesignPatterns;
 
 uses
   DUnitTestRunner,
-  TestHSharp_DesignPatterns in 'TestHSharp_DesignPatterns.pas',
-  HSharp.DesignPatterns.Singleton in '..\HSharp.DesignPatterns.Singleton.pas';
+  TestHSharp_DesignPatterns in 'TestHSharp_DesignPatterns.pas';
 
 {R *.RES}
 

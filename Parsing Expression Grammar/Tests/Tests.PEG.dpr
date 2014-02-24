@@ -16,20 +16,12 @@ program Tests.PEG;
 
 uses
   DUnitTestRunner,
-  HSharp.PEG in '..\HSharp.PEG.pas',
-  TestHSharp_PEG in 'TestHSharp_PEG.pas',
-  HSharp.WeakReference in '..\..\WeakReferences\HSharp.WeakReference.pas',
-  HSharp.Collections.Dictionary in '..\..\Collections\HSharp.Collections.Dictionary.pas',
-  HSharp.Collections.Interfaces.Internal in '..\..\Collections\HSharp.Collections.Interfaces.Internal.pas',
-  HSharp.Collections.Interfaces in '..\..\Collections\HSharp.Collections.Interfaces.pas',
-  HSharp.Collections.Internal in '..\..\Collections\HSharp.Collections.Internal.pas',
-  HSharp.Collections.List in '..\..\Collections\HSharp.Collections.List.pas',
-  HSharp.Collections in '..\..\Collections\HSharp.Collections.pas',
-  HSharp.PEG.Bootstrap in '..\HSharp.PEG.Bootstrap.pas';
+  TestHSharp_PEG in 'TestHSharp_PEG.pas';
 
 {$R *.RES}
 
 begin
+  ReportMemoryLeaksOnShutdown := True;
   DUnitTestRunner.RunRegisteredTests;
 end.
 

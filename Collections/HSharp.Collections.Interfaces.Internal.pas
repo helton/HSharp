@@ -49,6 +49,17 @@ type
 //    property OnValueNotify: TCollectionNotifyEvent<TValue> read FOnValueNotify write FOnValueNotify;
   end;
 
+  IStackInternal<T> = interface
+    ['{F9C19EFE-8392-4575-A3CE-32C88AEB329F}']
+    { private }
+    function GetCapacity: Integer;
+    procedure SetCapacity(Value: Integer);
+    function GetCount: Integer;
+    { public }
+    property Capacity: Integer read GetCapacity write SetCapacity;
+    property Count: Integer read GetCount;
+  end;
+
 implementation
 
 end.
