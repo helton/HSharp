@@ -9,6 +9,8 @@ uses
   HSharp.PEG.Exceptions,
   HSharp.PEG.Expression,
   HSharp.PEG.Expression.Interfaces,
+  HSharp.PEG.Grammar,
+  HSharp.PEG.Grammar.Interfaces,
   HSharp.PEG.Rule,
   HSharp.PEG.Rule.Interfaces;
 
@@ -50,11 +52,15 @@ type
     procedure WhenCallAsString_ShouldFormatCorrectly;
   end;
 
+  TestGrammar = class(TTestCase)
+  published
+    procedure Test;
+  end;
+
 implementation
 
 uses
-  Vcl.Dialogs, //remove it!
-
+  HSharp.Core.ArrayString,
   System.RegularExpressions,
   System.SysUtils;
 
@@ -318,7 +324,7 @@ var
   Expr: IExpression;
 begin
   Expr := TRegexExpression.Create('[0-9]+', [TRegExOption.roIgnoreCase, TRegExOption.roSingleLine]);
-  CheckEquals('"[0-9]+"is', Expr.AsString);
+  CheckEquals('~"[0-9]+"is', Expr.AsString);
 end;
 
 { TestContext }
@@ -369,19 +375,56 @@ begin
      TLiteralExpression.Create(' '),
      TRegexExpression.Create('[0-9]+', [TRegExOption.roIgnorePatternSpace]),
      TLiteralExpression.Create(' '),
+     TLookahedExpression.Create(TLiteralExpression.Create('lookahead')),
      TRegexExpression.Create('[a-z]+', [TRegExOption.roIgnoreCase]),
      TNegativeLookaheadExpression.Create(TLiteralExpression.Create('another_literal_text')),
      TRuleReferenceExpression.Create(InternalRule),
      TRegexExpression.Create('[0-5]+', [TRegExOption.roExplicitCapture])
     ]
   );
-  CheckEquals('OneOfRule = ''literal_text'' / '' '' / "[0-9]+"p / '' '' / "[a-z]+"i / !''another_literal_text'' / internal_rule / "[0-5]+"e',
+  CheckEquals('OneOfRule = "literal_text" / " " / ~"[0-9]+"p / " " / &"lookahead" / ~"[a-z]+"i / !"another_literal_text" / internal_rule / ~"[0-5]+"e',
               Rule.AsString, 'AsString of Rule should be showed correctly');
+end;
+
+{ TestGrammar }
+
+procedure TestGrammar.Test;
+var
+  Grammar: IGrammar;
+  Rule_bold_text, Rule_open_parens, Rule_text, Rule_close_parens: IRule;
+  Expected: IArrayString;
+begin
+  { create rules }
+  Rule_bold_text    := TRule.Create('bold_text');
+  Rule_open_parens  := TRule.Create('open_parens');
+  Rule_text         := TRule.Create('text');
+  Rule_close_parens := TRule.Create('close_parens');
+
+  { setup rules }
+  Rule_bold_text.Expression    := TSequenceExpression.Create(
+    [TRuleReferenceExpression.Create(Rule_open_parens),
+     TRuleReferenceExpression.Create(Rule_text),
+     TRuleReferenceExpression.Create(Rule_close_parens)
+    ]
+  );
+  Rule_open_parens.Expression  := TLiteralExpression.Create('((');
+  Rule_text.Expression         := TRegexExpression.Create('[a-zA-Z]+');
+  Rule_close_parens.Expression := TLiteralExpression.Create('))');
+
+  { create grammar }
+  Grammar := TGrammar.Create([Rule_bold_text, Rule_open_parens, Rule_text, Rule_close_parens]);
+  Expected := TArrayString.Create;
+  Expected.Add('bold_text = open_parens text close_parens');
+  Expected.Add('open_parens = "(("');
+  Expected.Add('text = ~"[a-zA-Z]+"');
+  Expected.Add('close_parens = "))"');
+  CheckEquals(Expected.AsString, Grammar.AsString, 'AsString of Grammar is wrong');
 end;
 
 initialization
   RegisterTest('HSharp.PEG.Context', TestContext.Suite);
   RegisterTest('HSharp.PEG.Expression', TestExpression.Suite);
+  RegisterTest('HSharp.PEG.Grammar', TestGrammar.Suite);
   RegisterTest('HSharp.PEG.Rule', TestRule.Suite);
 
 end.

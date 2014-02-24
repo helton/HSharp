@@ -10,7 +10,35 @@ type
   TReduceFunc<T> = reference to function (const ALeft, ARight: T): T;
   TSortFunc<T> = reference to function (const ALeft, ARight: T): Integer;
 
-  TArray<T> = record
+  IArray<T> = interface
+    ['{B434E9EC-1F8E-46CD-A055-8829C095ADCC}']
+    function GetItem(AIndex: Integer): T;
+    procedure SetItem(AIndex: Integer; const AValue: T);
+    procedure Swap(var ALeft, ARight: T);
+
+    procedure Add(AItem: T);
+    procedure AddRange(AItems: array of T);
+    function Clone: IArray<T>;
+    function Count: Integer;
+    function First: T;
+    procedure ForEach(AForEachProc: TForEachProc<T>);
+    procedure ForEachIndex(AForEachProcIndex: TForEachProcIndex<T>);
+    function Head: T;
+    function Init: IArray<T>;
+    property Items[AIndex: Integer]: T read GetItem write SetItem;
+    function Last: T;
+    function Length: Integer;
+    procedure Map(AMapFunc: TMapFunc<T>);
+    procedure MapIndex(AMapFuncIndex: TMapFuncIndex<T>);
+    function Reduce(AReduceFunc: TReduceFunc<T>): T;
+    function Remove(AIndex: Integer): T;
+    function Reverse: IArray<T>;
+    procedure Sort(ASortFunc: TSortFunc<T>; AReverse: Boolean = False);
+    function Sorted(ASortFunc: TSortFunc<T>; AReverse: Boolean = False): IArray<T>;
+    function Tail: IArray<T>;
+  end;
+
+  TArray<T> = class(TInterfacedObject, IArray<T>)
   strict private
     FItems: System.TArray<T>;
     function GetItem(AIndex: Integer): T;
@@ -19,14 +47,13 @@ type
   public
     procedure Add(AItem: T);
     procedure AddRange(AItems: array of T);
-    function Clone: TArray<T>;
+    function Clone: IArray<T>;
     function Count: Integer;
-    class function Create(aArray: System.TArray<T>): TArray<T>; static;
     function First: T;
     procedure ForEach(AForEachProc: TForEachProc<T>);
     procedure ForEachIndex(AForEachProcIndex: TForEachProcIndex<T>);
     function Head: T;
-    function Init: TArray<T>;
+    function Init: IArray<T>;
     property Items[AIndex: Integer]: T read GetItem write SetItem;
     function Last: T;
     function Length: Integer;
@@ -34,10 +61,11 @@ type
     procedure MapIndex(AMapFuncIndex: TMapFuncIndex<T>);
     function Reduce(AReduceFunc: TReduceFunc<T>): T;
     function Remove(AIndex: Integer): T;
-    function Reverse: TArray<T>;
+    function Reverse: IArray<T>;
     procedure Sort(ASortFunc: TSortFunc<T>; AReverse: Boolean = False);
-    function Sorted(ASortFunc: TSortFunc<T>; AReverse: Boolean = False): TArray<T>;
-    function Tail: TArray<T>;
+    function Sorted(ASortFunc: TSortFunc<T>; AReverse: Boolean = False): IArray<T>;
+    function Tail: IArray<T>;
+    constructor Create(const aItems: System.TArray<T>); overload;
   end;
 
 implementation
@@ -58,7 +86,7 @@ begin
     Add(Item);
 end;
 
-function TArray<T>.Clone: TArray<T>;
+function TArray<T>.Clone: IArray<T>;
 var
   Item: T;
 begin
@@ -71,9 +99,9 @@ begin
   Result := Length;
 end;
 
-class function TArray<T>.Create(aArray: System.TArray<T>): TArray<T>;
+constructor TArray<T>.Create(const aItems: System.TArray<T>);
 begin
-  Result.FItems := aArray;
+  FItems := aItems;
 end;
 
 function TArray<T>.First: T;
@@ -107,7 +135,7 @@ begin
   Result := FItems[0];
 end;
 
-function TArray<T>.Init: TArray<T>;
+function TArray<T>.Init: IArray<T>;
 begin
   Result := Clone;
   Result.Remove(Count - 1);
@@ -159,7 +187,7 @@ begin
   SetLength(FItems, System.Length(FItems) - 1);
 end;
 
-function TArray<T>.Reverse: TArray<T>;
+function TArray<T>.Reverse: IArray<T>;
 var
   i: Integer;
 begin
@@ -190,7 +218,7 @@ begin
     Reverse;
 end;
 
-function TArray<T>.Sorted(ASortFunc: TSortFunc<T>; AReverse: Boolean): TArray<T>;
+function TArray<T>.Sorted(ASortFunc: TSortFunc<T>; AReverse: Boolean): IArray<T>;
 begin
   Result := Clone;
   Result.Sort(ASortFunc, AReverse);
@@ -205,7 +233,7 @@ begin
   ARight := Temp;
 end;
 
-function TArray<T>.Tail: TArray<T>;
+function TArray<T>.Tail: IArray<T>;
 begin
   Result := Clone;
   Result.Remove(0);

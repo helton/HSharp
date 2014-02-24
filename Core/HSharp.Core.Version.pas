@@ -47,7 +47,7 @@ end;
 
 class operator TVersion.Implicit(aVersion: String): TVersion;
 var
-  Items: TArray<String>;
+  Items: IArray<String>;
 
   procedure ValidateInput;
   begin

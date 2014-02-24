@@ -101,6 +101,8 @@ type
   TLookahedExpression = class(TExpressionContainer)
   strict protected
     function ApplyExpression(const aContext: IContext): Boolean; override;
+  public
+    function AsString: string; override;
   end;
 
   // An expression that succeeds only if the expression within it doesn't
@@ -170,7 +172,7 @@ type
 
   TRuleReferenceExpression = class(TExpression)
   strict private
-    FRule: IRule;
+    FRule: IRule;  //should be a weak reference?
   strict protected
     function ApplyExpression(const aContext: IContext): Boolean; override;
   public
@@ -246,7 +248,7 @@ function TRegexExpression.AsString: string;
 var
   RegExOptions: TRegExOptions;
 begin
-  Result := '"' + RightStr(FRegEx.GetPattern, FRegEx.GetPattern.Length - 1) + '"';
+  Result := '~"' + RightStr(FRegEx.GetPattern, FRegEx.GetPattern.Length - 1) + '"';
   RegExOptions := FRegEx.GetOptions;
   if TRegExOption.roIgnoreCase in RegExOptions then
     Result := Result + 'i';
@@ -274,7 +276,7 @@ end;
 
 function TLiteralExpression.AsString: string;
 begin
-  Result := QuotedStr(FLiteral);
+  Result := '"' + FLiteral + '"';
 end;
 
 constructor TLiteralExpression.Create(const aLiteral: string);
@@ -373,6 +375,11 @@ end;
 function TLookahedExpression.ApplyExpression(const aContext: IContext): Boolean;
 begin
   Result := Expression.IsMatch(aContext); { don't consumes text }
+end;
+
+function TLookahedExpression.AsString: string;
+begin
+  Result := '&' + inherited;
 end;
 
 { TNegativeLookaheadExpression }
