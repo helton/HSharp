@@ -4,11 +4,13 @@ interface
 
 uses
   System.RegularExpressions,
-  HSharp.Core.RegularExpressions,
   HSharp.Collections,
   HSharp.Collections.Interfaces,
+  HSharp.Core.RegularExpressions,
   HSharp.PEG.Context.Interfaces,
-  HSharp.PEG.Expression.Interfaces;
+  HSharp.PEG.Exceptions,
+  HSharp.PEG.Expression.Interfaces,
+  HSharp.PEG.Rule.Interfaces;
 
 type
   {$REGION 'Base/abstract classes'}
@@ -166,10 +168,19 @@ type
 
   {$ENDREGION}
 
+  TRuleReferenceExpression = class(TExpression)
+  strict private
+    FRule: IRule;
+  strict protected
+    function ApplyExpression(const aContext: IContext): Boolean; override;
+  public
+    constructor Create(const aRule: IRule); reintroduce;
+    function AsString: string; override;
+  end;
+
 implementation
 
 uses
-  HSharp.PEG.Exceptions,
   System.StrUtils,
   System.SysUtils;
 
@@ -232,8 +243,21 @@ begin
 end;
 
 function TRegexExpression.AsString: string;
+var
+  RegExOptions: TRegExOptions;
 begin
-  Result := QuotedStr(RightStr(FRegEx.GetPattern, FRegEx.GetPattern.Length - 1)); //remove circumflex
+  Result := '"' + RightStr(FRegEx.GetPattern, FRegEx.GetPattern.Length - 1) + '"';
+  RegExOptions := FRegEx.GetOptions;
+  if TRegExOption.roIgnoreCase in RegExOptions then
+    Result := Result + 'i';
+  if TRegExOption.roMultiLine in RegExOptions then
+    Result := Result + 'm';
+  if TRegExOption.roExplicitCapture in RegExOptions then
+    Result := Result + 'e';
+  if TRegExOption.roSingleLine in RegExOptions then
+    Result := Result + 's';
+  if TRegExOption.roIgnorePatternSpace in RegExOptions then
+    Result := Result + 'p';
 end;
 
 { TLiteralExpression }
@@ -458,6 +482,26 @@ begin
   inherited Create(aExpression, 0, aMax);
   if aMax < 0 then
     raise EArgumentException.Create('Max should be positive');
+end;
+
+{ TRuleReferenceExpression }
+
+function TRuleReferenceExpression.ApplyExpression(
+  const aContext: IContext): Boolean;
+begin
+  Result := FRule.Expression.IsMatch(aContext);
+  FRule.Expression.Match(aContext);
+end;
+
+function TRuleReferenceExpression.AsString: string;
+begin
+  Result := FRule.Name;
+end;
+
+constructor TRuleReferenceExpression.Create(const aRule: IRule);
+begin
+  inherited Create;
+  FRule := aRule;
 end;
 
 end.

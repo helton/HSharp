@@ -15,6 +15,7 @@ type
     function GetPerlRegEx: TPerlRegEx;
     function GetPattern: String;
     function GetInput: String;
+    function GetOptions: TRegExOptions;
   end;
 
   TMatchHelper = record helper for TMatch
@@ -101,6 +102,19 @@ begin
   PerlRegEx := GetPerlRegEx;
   if Assigned(PerlRegEx) then
     Result := PerlRegEx.Subject;
+end;
+
+function TRegExHelper.GetOptions: TRegExOptions;
+var
+  RttiField: TRttiField;
+  Value: TValue;
+begin
+  RttiField := TRttiContext.Create.GetType(TypeInfo(TRegEx)).GetField('FOptions');
+  if Assigned(RttiField) then
+  begin
+    Value := RttiField.GetValue(@Self);
+    Value.TryAsType<TRegExOptions>(Result);
+  end;
 end;
 
 function TRegExHelper.GetPattern: String;

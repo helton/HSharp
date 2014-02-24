@@ -19,17 +19,18 @@ type
   public
     function AsString: string;
     function Parse(const aContext: IContext): Boolean;
-    constructor Create(const aName: string); reintroduce;
+    constructor Create(const aName: string; aExpression: IExpression = nil); reintroduce;
   end;
 
 implementation
 
 { TRule }
 
-constructor TRule.Create(const aName: string);
+constructor TRule.Create(const aName: string; aExpression: IExpression);
 begin
   inherited Create;
-  FName := aName;
+  FName       := aName;
+  FExpression := aExpression;
 end;
 
 function TRule.GetExpression: IExpression;
@@ -55,7 +56,7 @@ end;
 
 function TRule.AsString: string;
 begin
-  Result := FName + ' <- ' + FExpression.AsString;
+  Result := FName + ' = ' + FExpression.AsString;
 end;
 
 end.

@@ -29,7 +29,7 @@ type
   published
     procedure WhenCallCanMatch_ShouldCheckIfATextCanMatchButNotConsumesAnyText;
     procedure WhenCallMatch_ShouldCheckRaiseAnExceptionIfTextDoesntMatch;
-    procedure WhenCallAsStringOnRegexExpression_ShouldReturnRegexInQuotes;
+    procedure WhenCallAsStringOnRegexExpression_ShouldFormatCorrectly;
     procedure WhenMatch_TheMatchTextShouldBeAvailable;
     procedure AfterMatch_IndexShouldPointToTheNextTextThatWillBeMatched;
     procedure SequenceExpression_ShouldBeMatchAllExpressions;
@@ -47,7 +47,7 @@ type
 
   TestRule = class(TTestCase)
   published
-    procedure TestAsString;
+    procedure WhenCallAsString_ShouldFormatCorrectly;
   end;
 
 implementation
@@ -313,12 +313,12 @@ begin
   CheckEquals('', Context.Text, 'All text should be matched');
 end;
 
-procedure TestExpression.WhenCallAsStringOnRegexExpression_ShouldReturnRegexInQuotes;
+procedure TestExpression.WhenCallAsStringOnRegexExpression_ShouldFormatCorrectly;
 var
   Expr: IExpression;
 begin
-  Expr := TRegexExpression.Create('[0-9]+');
-  CheckEquals(QuotedStr('[0-9]+'), Expr.AsString);
+  Expr := TRegexExpression.Create('[0-9]+', [TRegExOption.roIgnoreCase, TRegExOption.roSingleLine]);
+  CheckEquals('"[0-9]+"is', Expr.AsString);
 end;
 
 { TestContext }
@@ -358,20 +358,25 @@ end;
 
 { TestRule }
 
-procedure TestRule.TestAsString;
+procedure TestRule.WhenCallAsString_ShouldFormatCorrectly;
 var
-  Rule: IRule;
+  InternalRule, Rule: IRule;
 begin
+  InternalRule := TRule.Create('internal_rule', TLiteralExpression.Create('rule_text'));
   Rule := TRule.Create('OneOfRule');
   Rule.Expression := TOneOfExpression.Create(
     [TLiteralExpression.Create('literal_text'),
      TLiteralExpression.Create(' '),
-     TRegexExpression.Create('[0-9]+'),
+     TRegexExpression.Create('[0-9]+', [TRegExOption.roIgnorePatternSpace]),
      TLiteralExpression.Create(' '),
-     TRegexExpression.Create('[a-z]+', [TRegExOption.roIgnoreCase])
+     TRegexExpression.Create('[a-z]+', [TRegExOption.roIgnoreCase]),
+     TNegativeLookaheadExpression.Create(TLiteralExpression.Create('another_literal_text')),
+     TRuleReferenceExpression.Create(InternalRule),
+     TRegexExpression.Create('[0-5]+', [TRegExOption.roExplicitCapture])
     ]
-  );;
-  ShowMessage(Rule.AsString);
+  );
+  CheckEquals('OneOfRule = ''literal_text'' / '' '' / "[0-9]+"p / '' '' / "[a-z]+"i / !''another_literal_text'' / internal_rule / "[0-5]+"e',
+              Rule.AsString, 'AsString of Rule should be showed correctly');
 end;
 
 initialization
