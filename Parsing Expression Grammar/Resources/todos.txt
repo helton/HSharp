@@ -4,7 +4,7 @@
   - OptionalExpression
   - OneOrMoreExpression
   - ZeroOrMoreExpression
-(  ) - Add TRuleReferenceExpression
+(OK) - Add TRuleReferenceExpression
 (  ) - Add anottaded gramamr with custom attributes
   ex.:
     TMyLanguageVisitor = class(TBaseVisitor)
@@ -13,10 +13,29 @@
       [Rule('ID <- ~"[a-z]+"il')]
       function ID_Rule(const aNodes: array of INode): TValue;
 (  ) - TBaseVisitor should build the grammar based on custom attributes
-(  ) - Add aNodes
+(  ) - Add Nodes
 (  ) - Add LazyEvaluation support (ex. IF statement cannot be computed until the user wants to)
+  - (  ) Create attribute LazyEvaluation to rules
 (  ) - Add EOF in IContext
 (  ) - If after parse and context.EOF -> raise exception 
 (??) - Add label to subexpressions:
-  ex.: 'ID <- ~"[a-z_]+"il<id_part1> ~"[a-z0-9_]"il<id_part2>'
+  ex.: 'ID = part1:/[a-z_]+/il part2:/[a-z0-9_]/il'
 (  ) - Add match count on expression (or node?)
+(  )  - Add multiple repetition (like regex, vide Citrus)
+(  )  - Add multiline comment option
+
+[Rule('IF = "if" _ expr _ stmt ( "else" _ stmt ) ?')]
+[LazyEvaluation]
+function IF(const aNode: INode): TValue;
+var
+  ElseNode: INode
+begin
+  if aNode.Child[2].AsBoolean then //if aNode.Child['expr'].AsBoolean
+    Result := aNode.Child[4].Call
+  else
+  begin
+    ElseNode = aNode.Child[5];
+    if not ElseNode.IsEmpty then // or if Assigned(ElseNode) then ?
+      Result := ElseNode.Child[3].Call;
+  end;
+end;

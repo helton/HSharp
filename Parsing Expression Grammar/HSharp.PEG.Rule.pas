@@ -56,7 +56,7 @@ end;
 
 function TRule.AsString: string;
 begin
-  Result := FName + ' = ' + FExpression.AsString;
+  Result := '<' + FName + '> = ' + FExpression.AsString;
 end;
 
 end.

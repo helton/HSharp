@@ -16,7 +16,8 @@ program Tests.PEG;
 
 uses
   DUnitTestRunner,
-  TestHSharp_PEG in 'TestHSharp_PEG.pas';
+  TestHSharp_PEG in 'TestHSharp_PEG.pas',
+  Test.ExpressionGrammar in 'Test.ExpressionGrammar.pas';
 
 {$R *.RES}
 

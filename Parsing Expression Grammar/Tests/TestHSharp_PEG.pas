@@ -10,7 +10,12 @@ uses
   HSharp.PEG.Expression,
   HSharp.PEG.Expression.Interfaces,
   HSharp.PEG.Grammar,
+  HSharp.PEG.Grammar.Bootstrapping,
   HSharp.PEG.Grammar.Interfaces,
+  HSharp.PEG.GrammarVisitor,
+  HSharp.PEG.GrammarVisitor.Attributes,
+  HSharp.PEG.Node,
+  HSharp.PEG.Node.Interfaces,
   HSharp.PEG.Rule,
   HSharp.PEG.Rule.Interfaces;
 
@@ -55,11 +60,32 @@ type
   TestGrammar = class(TTestCase)
   published
     procedure Test;
+    procedure TestExpressionGrammarVisitor;
+    procedure TestBootstrappingGrammar;
+  end;
+
+  TestNode = class(TTestCase)
+  published
+    procedure TestNodeLiteralExpression;
+    procedure TestNodeRegexExpression;
+    procedure TestNodeSequenceExpression;
+    procedure TestNodeOneOfExpression;
+    procedure TestNodeLookahedExpression;
+    procedure TestNodeNegativeLookaheadExpression;
+    procedure TestNodeRepeatAtLeastExpression;
+    procedure TestNodeRepeatRangeExpression;
+    procedure TestNodeRepeatZeroOrMoreExpression;
+    procedure TestNodeRepeatOneOrMoreExpression;
+    procedure TestNodeRepeatOptionalExpression;
+    procedure TestNodeRepeatExactlyExpression;
+    procedure TestNodeRepeatUpToExpression;
+//    procedure TestNodeRuleReferenceExpression;
   end;
 
 implementation
 
 uses
+  Test.ExpressionGrammar,
   HSharp.Core.ArrayString,
   System.RegularExpressions,
   System.SysUtils;
@@ -93,11 +119,12 @@ procedure TestExpression.WhenMatch_TheMatchTextShouldBeAvailable;
 var
   Expr: IExpression;
   Context: IContext;
+  Node: INode;
 begin
   Context := TContext.Create('1234567890 another text');
   Expr := TRegexExpression.Create('[0-9]+');
-  Expr.Match(Context);
-  CheckEquals('1234567890', Expr.Text, 'After match the matched text should be available');
+  Node := Expr.Match(Context);
+  CheckEquals('1234567890', Node.Text, 'After match the matched text should be available');
 end;
 
 procedure TestExpression.RepeatZeroOrMoreExpression_ShouldMatchCorrectly;
@@ -162,6 +189,7 @@ procedure TestExpression.OneOfExpression_ShouldBeMatchTheFirstValidExpression;
 var
   OneOf: IExpression;
   Context: IContext;
+  Node: INode;
 begin
   Context := TContext.Create('0123456789 literal_text anyIdentifier');
   OneOf := TOneOfExpression.Create(
@@ -174,8 +202,8 @@ begin
   );
   CheckTrue(OneOf.IsMatch(Context), 'Sequence should be matched');
 
-  OneOf.Match(Context);
-  CheckEquals('0123456789', OneOf.Text, 'Number should be matched');
+  Node := OneOf.Match(Context);
+  CheckEquals('0123456789', Node.Text, 'Number should be matched');
   CheckEquals(' literal_text anyIdentifier', Context.Text, 'Remaining text only should not include the matched text');
 end;
 
@@ -324,7 +352,7 @@ var
   Expr: IExpression;
 begin
   Expr := TRegexExpression.Create('[0-9]+', [TRegExOption.roIgnoreCase, TRegExOption.roSingleLine]);
-  CheckEquals('~"[0-9]+"is', Expr.AsString);
+  CheckEquals('/[0-9]+/is', Expr.AsString);
 end;
 
 { TestContext }
@@ -387,7 +415,7 @@ begin
      TNegativeLookaheadExpression.Create(TLiteralExpression.Create('another_literal_text')),
      TRuleReferenceExpression.Create(InternalRule),
      TRegexExpression.Create('[0-5]+', [TRegExOption.roExplicitCapture]),
-     TSequenceExpression.Create( //fix error...
+     TSequenceExpression.Create(
        [TLiteralExpression.Create('literal_text'),
         TRegexExpression.Create('[0-9]+'),
         TRegexExpression.Create('[a-z]+', [TRegExOption.roIgnoreCase])
@@ -395,23 +423,23 @@ begin
      )
     ]
   );
-  CheckEquals('OneOfRule = "literal_text" / ' +
-                           '" " / ' +
-                           '~"[0-9]+"p / ' +
-                           '" " / ' +
-                           '"text that will be repeated"* / ' +
-                           '"text that will be repeated"+ / ' +
-                           '"text that will be repeated"? / ' +
-                           '"text that will be repeated"{2,} / ' +
-                           '"text that will be repeated"{3,8} / ' +
-                           '"text that will be repeated"{7} / ' +
-                           '"text that will be repeated"{0,4} / ' +
-                           '&"lookahead" / ' +
-                           '~"[a-z]+"i / ' +
-                           '!"another_literal_text" / ' +
-                           'internal_rule / '+
-                           '~"[0-5]+"e / ' +
-                           '"literal_text" ~"[0-9]+" ~"[a-z]+"i',
+  CheckEquals('<OneOfRule> = "literal_text" | ' +
+                             '" " | ' +
+                             '/[0-9]+/p | ' +
+                             '" " | ' +
+                             '"text that will be repeated"* | ' +
+                             '"text that will be repeated"+ | ' +
+                             '"text that will be repeated"? | ' +
+                             '"text that will be repeated"{2,} | ' +
+                             '"text that will be repeated"{3,8} | ' +
+                             '"text that will be repeated"{7} | ' +
+                             '"text that will be repeated"{0,4} | ' +
+                             '&"lookahead" | ' +
+                             '/[a-z]+/i | ' +
+                             '!"another_literal_text" | ' +
+                             'internal_rule | '+
+                             '/[0-5]+/e | ' +
+                             '"literal_text" /[0-9]+/ /[a-z]+/i',
               Rule.AsString, 'AsString of Rule should be showed correctly');
 end;
 
@@ -443,17 +471,330 @@ begin
   { create grammar }
   Grammar := TGrammar.Create([Rule_bold_text, Rule_open_parens, Rule_text, Rule_close_parens]);
   Expected := TArrayString.Create;
-  Expected.Add('bold_text = open_parens text close_parens');
-  Expected.Add('open_parens = "(("');
-  Expected.Add('text = ~"[a-zA-Z]+"');
-  Expected.Add('close_parens = "))"');
+  Expected.Add('<bold_text> = open_parens text close_parens');
+  Expected.Add('<open_parens> = "(("');
+  Expected.Add('<text> = /[a-zA-Z]+/');
+  Expected.Add('<close_parens> = "))"');
   CheckEquals(Expected.AsString, Grammar.AsString, 'AsString of Grammar is wrong');
+end;
+
+procedure TestGrammar.TestBootstrappingGrammar;
+var
+  BootstrappingGrammar: TBootstrappingGrammar;
+begin
+  BootstrappingGrammar := TBootstrappingGrammar.Create(nil);
+  try
+    {}
+  finally
+    BootstrappingGrammar.Free;
+  end;
+end;
+
+procedure TestGrammar.TestExpressionGrammarVisitor;
+var
+  GrammarVisitor: TExpressionGrammarVisitor;
+begin
+  GrammarVisitor := TExpressionGrammarVisitor.Create;
+  try
+
+  finally
+    GrammarVisitor.Free;
+  end;
+end;
+
+{ TestNode }
+
+procedure TestNode.TestNodeLiteralExpression;
+var
+  Exp: IExpression;
+  Context: IContext;
+  Node: INode;
+begin
+  Context := TContext.Create('literal_text here');
+  Exp := TLiteralExpression.Create('literal_text');
+  Node := Exp.Match(Context);
+  CheckEquals('literal_text', Node.Text);
+  CheckEquals(0, Node.Index);
+  CheckNull(Node.Children);
+end;
+
+procedure TestNode.TestNodeLookahedExpression;
+var
+  Exp: IExpression;
+  Context: IContext;
+  Node: INode;
+begin
+  Context := TContext.Create('0123456789 original text');
+  Exp := TLookahedExpression.Create(TRegexExpression.Create('[0-9]+'));
+  Node := Exp.Match(Context);
+  CheckEquals('0123456789', Node.Text);
+  CheckEquals(0, Node.Index);
+  CheckNull(Node.Children);
+end;
+
+procedure TestNode.TestNodeNegativeLookaheadExpression;
+var
+  Exp: IExpression;
+  Context: IContext;
+  Node: INode;
+begin
+  Context := TContext.Create('original text 0123456789');
+  Exp := TNegativeLookaheadExpression.Create(TRegexExpression.Create('[0-9]+'));
+  Node := Exp.Match(Context);
+  CheckEquals('', Node.Text);
+  CheckEquals(0, Node.Index);
+  CheckNull(Node.Children);
+end;
+
+procedure TestNode.TestNodeOneOfExpression;
+var
+  Exp: IExpression;
+  Context: IContext;
+  Node: INode;
+begin
+  Context := TContext.Create('0123456789 literal_text anyIdentifier');
+  Exp := TOneOfExpression.Create(
+    [
+     TRegexExpression.Create('[a-z]+', [TRegExOption.roIgnoreCase]),
+     TLiteralExpression.Create(' '),
+     TLiteralExpression.Create('literal_text_not_match'),
+     TRegexExpression.Create('[0-9]+')
+    ]
+  );
+  Node := Exp.Match(Context);
+  CheckEquals('0123456789', Node.Text);
+  CheckEquals(0, Node.Index);
+  CheckNull(Node.Children);
+end;
+
+procedure TestNode.TestNodeRegexExpression;
+var
+  Exp: IExpression;
+  Context: IContext;
+  Node: INode;
+begin
+  Context := TContext.Create('literal_text here');
+  Exp := TRegexExpression.Create('[a-z_]+');
+  Node := Exp.Match(Context);
+  CheckEquals('literal_text', Node.Text);
+  CheckEquals(0, Node.Index);
+  CheckNull(Node.Children);
+end;
+
+procedure TestNode.TestNodeRepeatAtLeastExpression;
+var
+  Exp: IExpression;
+  Context: IContext;
+  Node: INode;
+begin
+  Context := TContext.Create('first_id second_id this_id 0123456789');
+  Exp := TRepeatAtLeastExpression.Create(
+    TRegexExpression.Create('[a-z_]+ ', [TRegExOption.roIgnoreCase]), 2);
+  Node := Exp.Match(Context);
+  CheckEquals('first_id second_id this_id ', Node.Text);
+  CheckEquals(0, Node.Index);
+  CheckNotNull(Node.Children);
+  CheckEquals(3, Node.Children.Count);
+
+  CheckEquals('first_id ', Node.Children[0].Text);
+  CheckEquals(0, Node.Children[0].Index);
+
+  CheckEquals('second_id ', Node.Children[1].Text);
+  CheckEquals(9, Node.Children[1].Index);
+
+  CheckEquals('this_id ', Node.Children[2].Text);
+  CheckEquals(19, Node.Children[2].Index);
+end;
+
+procedure TestNode.TestNodeRepeatExactlyExpression;
+var
+  Exp: IExpression;
+  Context: IContext;
+  Node: INode;
+begin
+  Context := TContext.Create('first_id second_id this_id 0123456789');
+  Exp := TRepeatExactlyExpression.Create(
+    TRegexExpression.Create('[a-z_]+ ', [TRegExOption.roIgnoreCase]), 3);
+  Node := Exp.Match(Context);
+  CheckEquals('first_id second_id this_id ', Node.Text);
+  CheckEquals(0, Node.Index);
+  CheckNotNull(Node.Children);
+  CheckEquals(3, Node.Children.Count);
+
+  CheckEquals('first_id ', Node.Children[0].Text);
+  CheckEquals(0, Node.Children[0].Index);
+
+  CheckEquals('second_id ', Node.Children[1].Text);
+  CheckEquals(9, Node.Children[1].Index);
+
+  CheckEquals('this_id ', Node.Children[2].Text);
+  CheckEquals(19, Node.Children[2].Index);
+end;
+
+procedure TestNode.TestNodeRepeatOneOrMoreExpression;
+var
+  Exp: IExpression;
+  Context: IContext;
+  Node: INode;
+begin
+  Context := TContext.Create('first_id second_id this_id 0123456789');
+  Exp := TRepeatOneOrMoreExpression.Create(TRegexExpression.Create('[a-z_]+ ', [TRegExOption.roIgnoreCase]));
+  Node := Exp.Match(Context);
+  CheckEquals('first_id second_id this_id ', Node.Text);
+  CheckEquals(0, Node.Index);
+  CheckNotNull(Node.Children);
+  CheckEquals(3, Node.Children.Count);
+
+  CheckEquals('first_id ', Node.Children[0].Text);
+  CheckEquals(0, Node.Children[0].Index);
+
+  CheckEquals('second_id ', Node.Children[1].Text);
+  CheckEquals(9, Node.Children[1].Index);
+
+  CheckEquals('this_id ', Node.Children[2].Text);
+  CheckEquals(19, Node.Children[2].Index);
+end;
+
+procedure TestNode.TestNodeRepeatOptionalExpression;
+var
+  Exp: IExpression;
+  Context: IContext;
+  Node: INode;
+begin
+  Context := TContext.Create('original text 0123456789');
+  Exp := TRepeatOptionalExpression.Create(TRegexExpression.Create('[0-9]+'));
+  Node := Exp.Match(Context);
+  CheckEquals('', Node.Text);
+  CheckEquals(0, Node.Index);
+  CheckNull(Node.Children);
+
+  Context := TContext.Create('0123456789 original text');
+  Exp := TRepeatOptionalExpression.Create(TRegexExpression.Create('[0-9]+'));
+  Node := Exp.Match(Context);
+  CheckEquals('0123456789', Node.Text);
+  CheckEquals(0, Node.Index);
+  CheckNull(Node.Children);
+end;
+
+procedure TestNode.TestNodeRepeatRangeExpression;
+var
+  Exp: IExpression;
+  Context: IContext;
+  Node: INode;
+begin
+  Context := TContext.Create('first_id second_id this_id 0123456789');
+  Exp := TRepeatRangeExpression.Create(
+    TRegexExpression.Create('[a-z_]+ ', [TRegExOption.roIgnoreCase]), 2, 3);
+  Node := Exp.Match(Context);
+  CheckEquals('first_id second_id this_id ', Node.Text);
+  CheckEquals(0, Node.Index);
+  CheckNotNull(Node.Children);
+  CheckEquals(3, Node.Children.Count);
+
+  CheckEquals('first_id ', Node.Children[0].Text);
+  CheckEquals(0, Node.Children[0].Index);
+
+  CheckEquals('second_id ', Node.Children[1].Text);
+  CheckEquals(9, Node.Children[1].Index);
+
+  CheckEquals('this_id ', Node.Children[2].Text);
+  CheckEquals(19, Node.Children[2].Index);
+end;
+
+procedure TestNode.TestNodeRepeatUpToExpression;
+var
+  Exp: IExpression;
+  Context: IContext;
+  Node: INode;
+begin
+  Context := TContext.Create('first_id second_id this_id 0123456789');
+  Exp := TRepeatUpToExpression.Create(
+    TRegexExpression.Create('[a-z_]+ ', [TRegExOption.roIgnoreCase]), 2);
+  Node := Exp.Match(Context);
+  CheckEquals('first_id second_id ', Node.Text);
+  CheckEquals(0, Node.Index);
+  CheckNotNull(Node.Children);
+  CheckEquals(2, Node.Children.Count);
+
+  CheckEquals('first_id ', Node.Children[0].Text);
+  CheckEquals(0, Node.Children[0].Index);
+
+  CheckEquals('second_id ', Node.Children[1].Text);
+  CheckEquals(9, Node.Children[1].Index);
+end;
+
+
+procedure TestNode.TestNodeRepeatZeroOrMoreExpression;
+var
+  Exp: IExpression;
+  Context: IContext;
+  Node: INode;
+begin
+  Context := TContext.Create('0123456789 first_id second_id this_id');
+  Exp := TRepeatZeroOrMoreExpression.Create(TRegexExpression.Create('[a-z_]+ ', [TRegExOption.roIgnoreCase]));
+  Node := Exp.Match(Context);
+  CheckNotNull(Node);
+  CheckEquals('', Node.Text);
+  CheckEquals(0, Node.Index);
+
+  Context := TContext.Create('first_id second_id this_id 0123456789');
+  Exp := TRepeatZeroOrMoreExpression.Create(TRegexExpression.Create('[a-z_]+ ', [TRegExOption.roIgnoreCase]));
+  Node := Exp.Match(Context);
+  CheckNotNull(Node.Children);
+  CheckEquals(3, Node.Children.Count);
+
+  CheckEquals('first_id ', Node.Children[0].Text);
+  CheckEquals(0, Node.Children[0].Index);
+
+  CheckEquals('second_id ', Node.Children[1].Text);
+  CheckEquals(9, Node.Children[1].Index);
+
+  CheckEquals('this_id ', Node.Children[2].Text);
+  CheckEquals(19, Node.Children[2].Index);
+end;
+
+procedure TestNode.TestNodeSequenceExpression;
+var
+  Exp: IExpression;
+  Context: IContext;
+  Node: INode;
+begin
+  Context := TContext.Create('literal_text 0123456789 anyIdentifier');
+  Exp := TSequenceExpression.Create(
+    [TLiteralExpression.Create('literal_text'),
+     TLiteralExpression.Create(' '),
+     TRegexExpression.Create('[0-9]+'),
+     TLiteralExpression.Create(' '),
+     TRegexExpression.Create('[a-z]+', [TRegExOption.roIgnoreCase])
+    ]
+  );
+  Node := Exp.Match(Context);
+  CheckEquals('literal_text 0123456789 anyIdentifier', Node.Text);
+  CheckEquals(0, Node.Index);
+  CheckNotNull(Node.Children);
+  CheckEquals(5, Node.Children.Count);
+
+  CheckEquals('literal_text', Node.Children[0].Text);
+  CheckEquals(0, Node.Children[0].Index);
+
+  CheckEquals(' ', Node.Children[1].Text);
+  CheckEquals(12, Node.Children[1].Index);
+
+  CheckEquals('0123456789', Node.Children[2].Text);
+  CheckEquals(13, Node.Children[2].Index);
+
+  CheckEquals(' ', Node.Children[3].Text);
+  CheckEquals(23, Node.Children[3].Index);
+
+  CheckEquals('anyIdentifier', Node.Children[4].Text);
+  CheckEquals(24, Node.Children[4].Index);
 end;
 
 initialization
   RegisterTest('HSharp.PEG.Context', TestContext.Suite);
   RegisterTest('HSharp.PEG.Expression', TestExpression.Suite);
   RegisterTest('HSharp.PEG.Grammar', TestGrammar.Suite);
+  RegisterTest('HSharp.PEG.Node', TestNode.Suite);
   RegisterTest('HSharp.PEG.Rule', TestRule.Suite);
 
 end.

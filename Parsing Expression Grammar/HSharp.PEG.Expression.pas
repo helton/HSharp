@@ -10,6 +10,8 @@ uses
   HSharp.PEG.Context.Interfaces,
   HSharp.PEG.Exceptions,
   HSharp.PEG.Expression.Interfaces,
+  HSharp.PEG.Node,
+  HSharp.PEG.Node.Interfaces,
   HSharp.PEG.Rule.Interfaces;
 
 type
@@ -17,17 +19,12 @@ type
 
   // A thing that can be matched against a piece of text
   TExpression = class abstract(TInterfacedObject, IExpression)
-  strict private
-    FText: string;
   strict protected
-    function GetText: string;
-    procedure SetText(aText: string); //can't be used as a set function to Text property
-    function ApplyExpression(const aContext: IContext): Boolean; virtual; abstract;
+    function ApplyExpression(const aContext: IContext): INode; virtual; abstract;
   public
     function IsMatch(const aContext: IContext): Boolean;
-    function Match(const aContext: IContext): Boolean;
+    function Match(const aContext: IContext): INode;
     function AsString: string; virtual; abstract;
-    property Text: string read GetText;
   end;
 
   // A container that hold a simple expression
@@ -58,7 +55,7 @@ type
   strict private
     FLiteral: string;
   strict protected
-    function ApplyExpression(const aContext: IContext): Boolean; override;
+    function ApplyExpression(const aContext: IContext): INode; override;
   public
     constructor Create(const aLiteral: string); reintroduce;
     function AsString: string; override;
@@ -69,7 +66,7 @@ type
   strict private
     FRegEx: TRegEx;
   strict protected
-    function ApplyExpression(const aContext: IContext): Boolean; override;
+    function ApplyExpression(const aContext: IContext): INode; override;
   public
     constructor Create(const aPattern: string; aRegExOptions: TRegExOptions = []); reintroduce;
     function AsString: string; override;
@@ -81,7 +78,7 @@ type
   // after another.
   TSequenceExpression = class(TCompoundExpression)
   strict protected
-    function ApplyExpression(const aContext: IContext): Boolean; override;
+    function ApplyExpression(const aContext: IContext): INode; override;
   public
     function AsString: string; override;
   end;
@@ -91,7 +88,7 @@ type
   // wins
   TOneOfExpression = class(TCompoundExpression)
   strict protected
-    function ApplyExpression(const aContext: IContext): Boolean; override;
+    function ApplyExpression(const aContext: IContext): INode; override;
   public
     function AsString: string; override;
   end;
@@ -100,7 +97,7 @@ type
   // succeeds
   TLookahedExpression = class(TExpressionContainer)
   strict protected
-    function ApplyExpression(const aContext: IContext): Boolean; override;
+    function ApplyExpression(const aContext: IContext): INode; override;
   public
     function AsString: string; override;
   end;
@@ -109,7 +106,7 @@ type
   // In any case, it never consumes any characters
   TNegativeLookaheadExpression = class(TExpressionContainer)
   strict protected
-    function ApplyExpression(const aContext: IContext): Boolean; override;
+    function ApplyExpression(const aContext: IContext): INode; override;
   public
     function AsString: string; override;
   end;
@@ -121,7 +118,7 @@ type
   strict private
     FMin: Integer;
   strict protected
-    function ApplyExpression(const aContext: IContext): Boolean; override;
+    function ApplyExpression(const aContext: IContext): INode; override;
   public
     constructor Create(const aExpression: IExpression; aMin: Integer); reintroduce;
     function AsString: string; override;
@@ -132,7 +129,7 @@ type
   strict private
     FMin, FMax: Integer;
   strict protected
-    function ApplyExpression(const aContext: IContext): Boolean; override;
+    function ApplyExpression(const aContext: IContext): INode; override;
   public
     constructor Create(const aExpression: IExpression; aMin, aMax: Integer); reintroduce;
     function AsString: string; override;
@@ -156,6 +153,8 @@ type
   // If the contained expression succeeds, it goes ahead and consumes what it
   // consumes. Otherwise, it consumes nothing.
   TRepeatOptionalExpression = class(TRepeatRangeExpression)
+  strict protected
+    function ApplyExpression(const aContext: IContext): INode; override;
   public
     constructor Create(const aExpression: IExpression); reintroduce;
     function AsString: string; override;
@@ -182,7 +181,7 @@ type
   strict private
     FRule: IRule;  //should be a weak reference?
   strict protected
-    function ApplyExpression(const aContext: IContext): Boolean; override;
+    function ApplyExpression(const aContext: IContext): INode; override;
   public
     constructor Create(const aRule: IRule); reintroduce;
     function AsString: string; override;
@@ -200,7 +199,7 @@ function TExpression.IsMatch(const aContext: IContext): Boolean;
 begin
   aContext.SaveState;
   try
-    Result := ApplyExpression(aContext);
+    Result := ApplyExpression(aContext) <> nil;
   except
     on EMatchError do
       Result := False
@@ -208,24 +207,13 @@ begin
       raise;
   end;
   aContext.RestoreState;
-  FText := '';
 end;
 
-function TExpression.GetText: string;
-begin
-  Result := FText;
-end;
-
-function TExpression.Match(const aContext: IContext): Boolean;
+function TExpression.Match(const aContext: IContext): INode;
 begin
   Result := ApplyExpression(aContext);
-  if not Result then
+  if not Assigned(Result) then
     raise EMatchError.Create('Can''t match text'); {TODO -oHelton -cImprove : Improve error message with more details}
-end;
-
-procedure TExpression.SetText(aText: string);
-begin
-  FText := aText;
 end;
 
 { TRegexExpression }
@@ -237,16 +225,18 @@ begin
   FRegEx := TRegEx.Create('^' + aPattern, aRegExOptions + [TRegExOption.roCompiled]);
 end;
 
-function TRegexExpression.ApplyExpression(const aContext: IContext): Boolean;
+function TRegexExpression.ApplyExpression(const aContext: IContext): INode;
 var
   Match: TMatch;
+  PreviousIndex: Integer;
 begin
+  Result := nil;
+  PreviousIndex := aContext.Index;
   Match  := FRegex.Match(aContext.Text);
-  Result := Match.Success;
-  if Result then
+  if Match.Success then
   begin
     aContext.IncIndex(Match.Index + Match.Length - 1);
-    SetText(Match.Value);
+    Result := TNode.Create(Match.Value, PreviousIndex);
   end;
 end;
 
@@ -254,7 +244,7 @@ function TRegexExpression.AsString: string;
 var
   RegExOptions: TRegExOptions;
 begin
-  Result := '~"' + RightStr(FRegEx.GetPattern, FRegEx.GetPattern.Length - 1) + '"';
+  Result := '/' + RightStr(FRegEx.GetPattern, FRegEx.GetPattern.Length - 1) + '/';
   RegExOptions := FRegEx.GetOptions;
   if TRegExOption.roIgnoreCase in RegExOptions then
     Result := Result + 'i';
@@ -270,13 +260,16 @@ end;
 
 { TLiteralExpression }
 
-function TLiteralExpression.ApplyExpression(const aContext: IContext): Boolean;
+function TLiteralExpression.ApplyExpression(const aContext: IContext): INode;
+var
+  PreviousIndex: Integer;
 begin
-  Result := aContext.Text.StartsWith(FLiteral);
-  if Result then
+  Result := nil;
+  PreviousIndex := aContext.Index;
+  if aContext.Text.StartsWith(FLiteral) then
   begin
     aContext.IncIndex(FLiteral.Length);
-    SetText(FLiteral);
+    Result := TNode.Create(FLiteral, PreviousIndex);
   end;
 end;
 
@@ -304,16 +297,27 @@ end;
 { TSequenceExpressions }
 
 function TSequenceExpression.ApplyExpression(
-  const aContext: IContext): Boolean;
+  const aContext: IContext): INode;
 var
   Expression: IExpression;
+  PreviousIndex: Integer;
+  Children: IList<INode>;
+  ChildNode: INode;
+  FullText: string;
 begin
-  Result := False;
+  Result := nil;
+  PreviousIndex := aContext.Index;
+  FullText := '';
+  Children := Collections.CreateList<INode>;
   for Expression in Expressions do
   begin
-    Result := Expression.Match(aContext);
-    SetText(Text + Expression.Text);
+    ChildNode := Expression.Match(aContext);
+    Children.Add(ChildNode);
+    FullText := FullText + ChildNode.Text;
   end;
+  if FullText.IsEmpty then
+    Children := nil;
+  Result := TNode.Create(FullText, PreviousIndex, Children);
 end;
 
 function TSequenceExpression.AsString: string;
@@ -330,21 +334,19 @@ begin
   end;
 end;
 
-{ TPrioritizedChoiceExpression }
+{ TOneOfExpression }
 
 function TOneOfExpression.ApplyExpression(
-  const aContext: IContext): Boolean;
+  const aContext: IContext): INode;
 var
   Expression: IExpression;
 begin
-  Result := False;
+  Result := nil;
   for Expression in Expressions do
   begin
-    Result := Expression.IsMatch(aContext);
-    if Result then
+    if Expression.IsMatch(aContext) then
     begin
-      Expression.Match(aContext);
-      SetText(Text + Expression.Text);
+      Result := Expression.Match(aContext); {TODO -oHelton -cCheck : Check if I need create a node and pass the expression node as a child node}
       Break;
     end;
   end;
@@ -359,7 +361,7 @@ begin
     if Result.IsEmpty then
       Result := Expression.AsString
     else
-      Result := Result + ' / ' + Expression.AsString;
+      Result := Result + ' | ' + Expression.AsString;
   end;
 end;
 
@@ -378,9 +380,16 @@ end;
 
 { TLookahedExpression }
 
-function TLookahedExpression.ApplyExpression(const aContext: IContext): Boolean;
+function TLookahedExpression.ApplyExpression(const aContext: IContext): INode;
+var
+  Node: INode;
 begin
-  Result := Expression.IsMatch(aContext); { don't consumes text }
+  Result := nil;
+  aContext.SaveState;
+  Node := Expression.Match(aContext); { don't consumes text }
+  if Assigned(Node) then              {TODO -oHelton -cCheck : Is is right? }
+    Result := Node;
+  aContext.RestoreState;
 end;
 
 function TLookahedExpression.AsString: string;
@@ -390,9 +399,16 @@ end;
 
 { TNegativeLookaheadExpression }
 
-function TNegativeLookaheadExpression.ApplyExpression(const aContext: IContext): Boolean;
+function TNegativeLookaheadExpression.ApplyExpression(const aContext: IContext): INode;
+var
+  PreviousIndex: Integer;
 begin
-  Result := not Expression.IsMatch(aContext); { don't consumes text }
+  Result := nil;
+  PreviousIndex := aContext.Index;
+  aContext.SaveState;
+  if not Expression.IsMatch(aContext) then
+    Result := TNode.Create('', PreviousIndex);  {TODO -oHelton -cCheck : Is is right?}
+  aContext.RestoreState;
 end;
 
 function TNegativeLookaheadExpression.AsString: string;
@@ -427,20 +443,36 @@ end;
 { TRepeatRangeExpression }
 
 function TRepeatRangeExpression.ApplyExpression(
-  const aContext: IContext): Boolean;
+  const aContext: IContext): INode;
 var
   Count: Integer;
   i: Integer;
+  PreviousIndex: Integer;
+  Children: IList<INode>;
+  ChildNode: INode;
+  FullText: string;
 begin
+  Result := nil;
+  PreviousIndex := aContext.Index;
+  FullText := '';
+  Children := Collections.CreateList<INode>;
   for i in [1..FMin] do
-    Expression.Match(aContext);
-  Count  := FMin;
-  Result := True;
+  begin
+    ChildNode := Expression.Match(aContext);
+    Children.Add(ChildNode);
+    FullText := FullText + ChildNode.Text;
+  end;
+  Count := FMin;
   while (Count < FMax) and Expression.IsMatch(aContext) do
   begin
-    Expression.Match(aContext);
+    ChildNode := Expression.Match(aContext);
+    Children.Add(ChildNode);
+    FullText := FullText + ChildNode.Text;
     Inc(Count);
   end;
+  if FullText.IsEmpty then
+    Children := nil;
+  Result := TNode.Create(FullText, PreviousIndex, Children);
 end;
 
 function TRepeatRangeExpression.AsString: string;
@@ -481,20 +513,38 @@ end;
 { TRepeatAtLeastExpression }
 
 function TRepeatAtLeastExpression.ApplyExpression(
-  const aContext: IContext): Boolean;
+  const aContext: IContext): INode;
 var
   i: Integer;
+  PreviousIndex: Integer;
+  Children: IList<INode>;
+  ChildNode: INode;
+  FullText: string;
 begin
+  Result := nil;
+  FullText := '';
+  PreviousIndex := aContext.Index;
+  Children := Collections.CreateList<INode>;
   for i in [1..FMin] do
-    Expression.Match(aContext);
-  Result := True;
+  begin
+    ChildNode := Expression.Match(aContext);
+    Children.Add(ChildNode);
+    FullText := FullText + ChildNode.Text;
+  end;
   while Expression.IsMatch(aContext) do
-    Expression.Match(aContext);
+  begin
+    ChildNode := Expression.Match(aContext);
+    Children.Add(ChildNode);
+    FullText := FullText + ChildNode.Text;
+  end;
+  if FullText.IsEmpty then
+    Children := nil;
+  Result := TNode.Create(FullText, PreviousIndex, Children);
 end;
 
 function TRepeatAtLeastExpression.AsString: string;
 begin
-  Result := inherited + '{' + FMin.ToString + ',}';
+  Result := inherited + '{' + FMin.ToString + ',}'; {TODO -oHelton -cAdd : Add parenthesis if inner expression is a list ("sequence" or "one of")}
 end;
 
 constructor TRepeatAtLeastExpression.Create(const aExpression: IExpression;
@@ -507,6 +557,15 @@ begin
 end;
 
 { TRepeatOptionalExpression }
+
+function TRepeatOptionalExpression.ApplyExpression(
+  const aContext: IContext): INode;
+var
+  Node: INode;
+begin
+  Node := inherited;
+  Result := TNode.Create(Node.Text, Node.Index, nil);
+end;
 
 function TRepeatOptionalExpression.AsString: string;
 begin
@@ -531,9 +590,9 @@ end;
 { TRuleReferenceExpression }
 
 function TRuleReferenceExpression.ApplyExpression(
-  const aContext: IContext): Boolean;
+  const aContext: IContext): INode;
 begin
-  Result := FRule.Expression.Match(aContext);
+  Result := FRule.Expression.Match(aContext);  {TODO -oHelton -cCheck : Should return user value text after call}
 end;
 
 function TRuleReferenceExpression.AsString: string;

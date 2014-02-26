@@ -4,8 +4,7 @@ interface
 
 uses
   System.Types,
-  HSharp.Core.Arrays,
-  HSharp.Core.Wrapper;
+  HSharp.Core.Arrays;
 
 type
   IArrayString = interface(IArray<String>)

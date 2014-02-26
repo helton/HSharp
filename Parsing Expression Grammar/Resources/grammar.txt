@@ -1,0 +1,33 @@
+# XPEG - Parsing Expression Grammars (PEG) adapted
+# 
+# Author: Helton Carlos de Souza <helton.development@gmail.com>
+#
+# Useful links:
+#   - PEG specification        <http://www.brynosaurus.com/pub/lang/peg.pdf>
+#   - Parsimonious (in Python) <https://github.com/erikrose/parsimonious>
+#   - Citrus (in Ruby)         <https://github.com/mjijackson/citrus>
+#   - Parselet (in Ruby)       <https://github.com/kschiess/parslet>
+
+# Rules
+<rules>                    = rule+
+<rule>                     = rule_identifier assignment expression
+<expression>               = sequence ("|" sequence)*
+<sequence>                 = prefix*
+<prefix>                   = lookahead_assertion? suffix
+<suffix>                   = primary quantifier?
+<primary>                  = rule_reference 
+                           |  parenthesized_expression
+                           |  literal
+                           |  regex
+<parenthesized_expression> = "(" expression ")"
+
+# Implicit tokens
+<assignment>          = "="
+<rule_identifier>     = /<[a-z_][a-z0-9_]*>/i
+<regex>               = ///.*?[^\\]//[imesp]*/is
+<literal>             = /\".*?[^\\]\"/is
+<rule_reference>      = /[a-z_][a-z0-9_]*/i
+<lookahead_assertion> = /[&!]/
+<quantifier>          = /[?*+]|{[0-9]+(\s*,\s*([0-9]+)?)?}/
+<comment>             = /#[^\r\n]*/
+<spaces>              = /(?:\t|\s|\n)+/
