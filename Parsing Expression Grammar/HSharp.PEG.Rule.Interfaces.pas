@@ -4,7 +4,8 @@ interface
 
 uses
   HSharp.PEG.Context.Interfaces,
-  HSharp.PEG.Expression.Interfaces;
+  HSharp.PEG.Expression.Interfaces,
+  HSharp.PEG.Node.Interfaces;
 
 type
   IRule = interface
@@ -12,7 +13,7 @@ type
     function GetName: string;
     function GetExpression: IExpression;
     procedure SetExpression(const aExpression: IExpression);
-    function Parse(const aContext: IContext): Boolean;
+    function Parse(const aContext: IContext): INode;
     function AsString: string;
     property Name: string read GetName;
     property Expression: IExpression read GetExpression write SetExpression;

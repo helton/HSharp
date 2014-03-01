@@ -15,6 +15,7 @@ type
 
   TArrayString = class(TArray<string>, IArrayString)
   public
+    procedure Indent(aLevel: Integer);
     function Join(aSeparator: string): string;
     function AsString: string;
   end;
@@ -29,6 +30,18 @@ uses
 function TArrayString.AsString: string;
 begin
   Result := Join(sLineBreak);
+end;
+
+procedure TArrayString.Indent(aLevel: Integer);
+const
+  iSpacedPerLevel = 4;
+begin
+  Map(
+    function (const aItem: string): string
+    begin
+      Result := StringOfChar(' ', aLevel * iSpacedPerLevel) + aItem;
+    end
+  );
 end;
 
 function TArrayString.Join(aSeparator: string): string;

@@ -3,6 +3,7 @@ unit HSharp.PEG.Node;
 interface
 
 uses
+  System.RegularExpressions,
   System.Rtti,
   HSharp.Collections,
   HSharp.Collections.Interfaces,
@@ -16,17 +17,33 @@ type
     FIndex: Integer;
     FChildren: IList<INode>;
   strict protected
-    procedure SetValue(aValue: TValue);
+    procedure SetValue(const aValue: TValue);
   public
-    constructor Create(const aText: string; aIndex: Integer; const aChildren: IList<INode> = nil); reintroduce;
+    constructor Create(const aText: string; aIndex: Integer;
+      const aChildren: IList<INode> = nil); reintroduce;
     { INode }
     function GetValue: TValue;
     function GetText: string;
     function GetIndex: Integer;
     function GetChildren: IList<INode>;
+    function ToString(aLevel: Integer = 0): string; reintroduce;
+  end;
+
+  TRegexNode = class(TNode, IRegexNode)
+  strict private
+    FMatch: TMatch;
+  strict protected
+    function GetMatch: TMatch;
+  public
+    constructor Create(aMatch: TMatch; aIndex: Integer;
+       const aChildren: IList<INode> = nil); reintroduce;
   end;
 
 implementation
+
+uses
+  System.SysUtils,
+  HSharp.Core.ArrayString;
 
 { TNode }
 
@@ -60,9 +77,45 @@ begin
   Result := FValue;
 end;
 
-procedure TNode.SetValue(aValue: TValue);
+procedure TNode.SetValue(const aValue: TValue);
 begin
   FValue := aValue;
+end;
+
+function TNode.ToString(aLevel: Integer): string;
+var
+  Arr: TArrayString;
+  Child: INode;
+begin
+  Arr := TArrayString.Create;
+  Arr.Add('<node>');
+  Arr.Add('  <value>' + FValue.AsString + '</value>');
+  Arr.Add('  <text>' + FText + '</text>');
+  Arr.Add('  <index>' + FIndex.ToString + '</index>');
+  if Assigned(FChildren) then
+  begin
+    Arr.Add('  <children>');
+    for Child in FChildren do
+      Arr.Add(Child.ToString(aLevel + 1));
+    Arr.Add('  </children>');
+  end;
+  Arr.Add('</node>');
+  Arr.Indent(aLevel);
+  Result := Arr.AsString;
+end;
+
+{ TRegexNode }
+
+constructor TRegexNode.Create(aMatch: TMatch; aIndex: Integer;
+  const aChildren: IList<INode>);
+begin
+  inherited Create(aMatch.Value, aIndex, aChildren);
+  FMatch := aMatch;
+end;
+
+function TRegexNode.GetMatch: TMatch;
+begin
+  Result := FMatch;
 end;
 
 end.

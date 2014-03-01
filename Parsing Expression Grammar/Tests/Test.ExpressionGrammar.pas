@@ -21,7 +21,7 @@ uses
 type
   TExpressionGrammarVisitor = class(TGrammarVisitor)
   public
-    [Rule('integer = /[0-9]+/')]
+    [Rule('<integer> = /[0-9]+/')]
     function VisitInteger(const aNode: INode): TValue;
   end;
 

@@ -136,8 +136,6 @@ begin
   Comment.Expression := TRegexExpression.Create('#[^\r\n]*');
   // <spaces> = /(?:\t|\s|\n)+/
   Spaces.Expression := TRegexExpression.Create('(?:\t|\s|\n)+');
-
-
 end;
 
 constructor TBootstrappingGrammar.Create(const aRawRules: IList<string>);

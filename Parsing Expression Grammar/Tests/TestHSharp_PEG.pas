@@ -50,11 +50,13 @@ type
     procedure RepeatExactlyExpression_ShouldMatchCorrectly;
     procedure RepeatAtLeastExpression_ShouldMatchCorrectly;
     procedure RepeatUpToExpression_ShouldMatchCorrectly;
+    procedure TestExpressionHandler;
   end;
 
   TestRule = class(TTestCase)
   published
     procedure WhenCallAsString_ShouldFormatCorrectly;
+    procedure TestExpressionHandler;
   end;
 
   TestGrammar = class(TTestCase)
@@ -80,11 +82,16 @@ type
     procedure TestNodeRepeatExactlyExpression;
     procedure TestNodeRepeatUpToExpression;
 //    procedure TestNodeRuleReferenceExpression;
+    procedure TestToString;
   end;
 
 implementation
 
 uses
+  System.Rtti,
+
+  Vcl.Dialogs,
+
   Test.ExpressionGrammar,
   HSharp.Core.ArrayString,
   System.RegularExpressions,
@@ -347,6 +354,32 @@ begin
   CheckEquals('', Context.Text, 'All text should be matched');
 end;
 
+procedure TestExpression.TestExpressionHandler;
+var
+  InternalExpression, Seq: IExpression;
+  Context: IContext;
+  InternalTextMatched: string;
+begin
+  Context := TContext.Create('literal_text 0123456789 anyIdentifier');
+  InternalExpression := TRegexExpression.Create('[0-9]+');
+  Seq := TSequenceExpression.Create(
+    [TLiteralExpression.Create('literal_text'),
+     TLiteralExpression.Create(' '),
+     InternalExpression,
+     TLiteralExpression.Create(' '),
+     TRegexExpression.Create('[a-z]+', [TRegExOption.roIgnoreCase])
+    ]
+  );
+  InternalExpression.ExpressionHandler :=
+    function (const aNode: INode): TValue
+    begin
+      Result := aNode.Text;
+      InternalTextMatched := Result.AsString;
+    end;
+  Seq.Match(Context);
+  CheckEquals('0123456789', InternalTextMatched);
+end;
+
 procedure TestExpression.WhenCallAsStringOnRegexExpression_ShouldFormatCorrectly;
 var
   Expr: IExpression;
@@ -391,6 +424,37 @@ begin
 end;
 
 { TestRule }
+
+procedure TestRule.TestExpressionHandler;
+var
+  Context: IContext;
+  InternalTextMatchedNode, InternalTextMatched0, InternalTextMatched2, InternalTextMatched4: string;
+  Rule: IRule;
+begin
+  Context := TContext.Create('literal_text 0123456789 anyIdentifier');
+  Rule := TRule.Create('expression_handler',
+    TSequenceExpression.Create(
+    [TLiteralExpression.Create('literal_text'),
+     TLiteralExpression.Create(' '),
+     TRegexExpression.Create('[0-9]+'),
+     TLiteralExpression.Create(' '),
+     TRegexExpression.Create('[a-z]+', [TRegExOption.roIgnoreCase])
+    ]
+  ),
+  function(const aNode: INode): TValue
+  begin
+    Result := aNode.Text;
+    InternalTextMatched0 := aNode.Children[0].Text;
+    InternalTextMatched2 := aNode.Children[2].Text;
+    InternalTextMatched4 := aNode.Children[4].Text;
+    InternalTextMatchedNode := Result.AsString;
+  end);
+  Rule.Parse(Context);
+  CheckEquals('literal_text 0123456789 anyIdentifier', InternalTextMatchedNode);
+  CheckEquals('literal_text', InternalTextMatched0);
+  CheckEquals('0123456789', InternalTextMatched2);
+  CheckEquals('anyIdentifier', InternalTextMatched4);
+end;
 
 procedure TestRule.WhenCallAsString_ShouldFormatCorrectly;
 var
@@ -788,6 +852,67 @@ begin
 
   CheckEquals('anyIdentifier', Node.Children[4].Text);
   CheckEquals(24, Node.Children[4].Index);
+end;
+
+procedure TestNode.TestToString;
+var
+  Context: IContext;
+  Rule: IRule;
+  ReturnedText: string;
+
+  function GetExpectedText: string;
+  var
+    Arr: TArrayString;
+  begin
+    Arr := TArrayString.Create;
+    Arr.Add('<node>');
+    Arr.Add('  <value>literal_text 0123456789 anyIdentifier</value>');
+    Arr.Add('  <text>literal_text 0123456789 anyIdentifier</text>');
+    Arr.Add('  <index>0</index>');
+    Arr.Add('  <children>');
+    Arr.Add('    <node>');
+    Arr.Add('      <value>literal_text</value>');
+    Arr.Add('      <text>literal_text</text>');
+    Arr.Add('      <index>0</index>');
+    Arr.Add('    </node>');
+    Arr.Add('    <node>');
+    Arr.Add('      <value> </value>');
+    Arr.Add('      <text> </text>');
+    Arr.Add('      <index>12</index>');
+    Arr.Add('    </node>');
+    Arr.Add('    <node>');
+    Arr.Add('      <value>0123456789</value>');
+    Arr.Add('      <text>0123456789</text>');
+    Arr.Add('      <index>13</index>');
+    Arr.Add('    </node>');
+    Arr.Add('    <node>');
+    Arr.Add('      <value> </value>');
+    Arr.Add('      <text> </text>');
+    Arr.Add('      <index>23</index>');
+    Arr.Add('    </node>');
+    Arr.Add('    <node>');
+    Arr.Add('      <value>anyIdentifier</value>');
+    Arr.Add('      <text>anyIdentifier</text>');
+    Arr.Add('      <index>24</index>');
+    Arr.Add('    </node>');
+    Arr.Add('  </children>');
+    Arr.Add('</node>');
+    Result := Arr.AsString;
+  end;
+
+begin
+  Context := TContext.Create('literal_text 0123456789 anyIdentifier');
+  Rule := TRule.Create('expression_handler',
+    TSequenceExpression.Create(
+    [TLiteralExpression.Create('literal_text'),
+     TLiteralExpression.Create(' '),
+     TRegexExpression.Create('[0-9]+'),
+     TLiteralExpression.Create(' '),
+     TRegexExpression.Create('[a-z]+', [TRegExOption.roIgnoreCase])
+    ]
+  ));
+  ReturnedText := Rule.Parse(Context).ToString;
+  CheckEquals(GetExpectedText, ReturnedText);
 end;
 
 initialization

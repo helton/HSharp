@@ -12,19 +12,26 @@ uses
   HSharp.PEG.Expression.Interfaces,
   HSharp.PEG.Node,
   HSharp.PEG.Node.Interfaces,
-  HSharp.PEG.Rule.Interfaces;
+  HSharp.PEG.Rule.Interfaces,
+  HSharp.PEG.Types;
 
 type
   {$REGION 'Base/abstract classes'}
 
   // A thing that can be matched against a piece of text
   TExpression = class abstract(TInterfacedObject, IExpression)
+  strict private
+    FExpressionHandler: TExpressionHandler;
   strict protected
+    function GetExpressionHandler: TExpressionHandler;
+    procedure SetExpressionHandler(aExpressionHandler: TExpressionHandler);
     function ApplyExpression(const aContext: IContext): INode; virtual; abstract;
   public
     function IsMatch(const aContext: IContext): Boolean;
     function Match(const aContext: IContext): INode;
     function AsString: string; virtual; abstract;
+    property ExpressionHandler: TExpressionHandler read GetExpressionHandler
+      write SetExpressionHandler;
   end;
 
   // A container that hold a simple expression
@@ -195,6 +202,11 @@ uses
 
 { TExpression }
 
+function TExpression.GetExpressionHandler: TExpressionHandler;
+begin
+  Result := FExpressionHandler;
+end;
+
 function TExpression.IsMatch(const aContext: IContext): Boolean;
 begin
   aContext.SaveState;
@@ -210,10 +222,25 @@ begin
 end;
 
 function TExpression.Match(const aContext: IContext): INode;
+var
+  SavedIndex: Integer;
 begin
+  SavedIndex := aContext.Index;
   Result := ApplyExpression(aContext);
-  if not Assigned(Result) then
-    raise EMatchError.Create('Can''t match text'); {TODO -oHelton -cImprove : Improve error message with more details}
+  if Assigned(Result) then
+  begin
+    if Assigned(FExpressionHandler) then
+      Result.Value := FExpressionHandler(Result);
+  end
+  else
+    raise EMatchError.Create('Can''t match text at position = ' +
+      SavedIndex.ToString);
+end;
+
+procedure TExpression.SetExpressionHandler(
+  aExpressionHandler: TExpressionHandler);
+begin
+  FExpressionHandler := aExpressionHandler;
 end;
 
 { TRegexExpression }
@@ -236,7 +263,7 @@ begin
   if Match.Success then
   begin
     aContext.IncIndex(Match.Index + Match.Length - 1);
-    Result := TNode.Create(Match.Value, PreviousIndex);
+    Result := TRegexNode.Create(Match, PreviousIndex);
   end;
 end;
 
@@ -592,7 +619,7 @@ end;
 function TRuleReferenceExpression.ApplyExpression(
   const aContext: IContext): INode;
 begin
-  Result := FRule.Expression.Match(aContext);  {TODO -oHelton -cCheck : Should return user value text after call}
+  Result := FRule.Expression.Match(aContext);
 end;
 
 function TRuleReferenceExpression.AsString: string;

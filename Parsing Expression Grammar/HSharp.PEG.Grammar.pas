@@ -8,6 +8,7 @@ uses
   HSharp.PEG.Context,
   HSharp.PEG.Context.Interfaces,
   HSharp.PEG.Grammar.Interfaces,
+  HSharp.PEG.Node.Interfaces,
   HSharp.PEG.Rule.Interfaces;
 
 type
@@ -17,7 +18,7 @@ type
     FRules: IList<IRule>;
   public
     constructor Create(const aRules: array of IRule; const aDefaultRule: IRule = nil); reintroduce;
-    function Parse(const aText: string): Boolean;
+    function Parse(const aText: string): INode;
     function AsString: string;
   end;
 
@@ -56,7 +57,7 @@ begin
     FDefaultRule := FRules.First;
 end;
 
-function TGrammar.Parse(const aText: string): Boolean;
+function TGrammar.Parse(const aText: string): INode;
 begin
   Result := FDefaultRule.Parse(TContext.Create(aText));
 end;
