@@ -234,8 +234,8 @@ begin
   SavedIndex := aContext.Index;
   Result := ApplyExpression(aContext);
   if not Assigned(Result) then
-    raise EMatchError.Create('Can''t match text at position ' +
-      SavedIndex.ToString + ' after "' + LeftStr(aContext.Text, 20) + '" ...');
+    raise EMatchError.Create('[' + FName + '] - Can''t match text at position ' +
+      SavedIndex.ToString + ' after "' + LeftStr(aContext.Text, 100) + '" ...');
 end;
 
 procedure TExpression.SetName(const aName: string);

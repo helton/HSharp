@@ -496,33 +496,44 @@ var
     Arr: IArrayString;
   begin
     Arr := TArrayString.Create;
-    Arr.Add('<rules>                    = rule+');
-    Arr.Add('<rule>                     = rule_identifier assignment expression');
-    Arr.Add('<expression>               = sequence ("|" sequence)*');
-    Arr.Add('<sequence>                 = prefix*');
-    Arr.Add('<prefix>                   = lookahead_assertion? suffix');
-    Arr.Add('<suffix>                   = primary quantifier?');
-    Arr.Add('<primary>                  = rule_reference');
-    Arr.Add('                           |  parenthesized_expression');
-    Arr.Add('                           |  literal');
-    Arr.Add('                           |  regex');
-    Arr.Add('<parenthesized_expression> = "(" expression ")"');
-    Arr.Add('<assignment>          = "="');
-    Arr.Add('<rule_identifier>     = /<[a-z_][a-z0-9_]*>/i');
-    Arr.Add('<regex>               = ///.*?[^\\]//[imesp]*/is');
-    Arr.Add('<literal>             = /\".*?[^\\]\"/is');
-    Arr.Add('<rule_reference>      = /[a-z_][a-z0-9_]*/i');
-    Arr.Add('<lookahead_assertion> = /[&!]/');
-    Arr.Add('<quantifier>          = /[?*+]|{[0-9]+(\s*,\s*([0-9]+)?)?}/');
-    Arr.Add('<comment>             = /#[^\r\n]*/');
-    Arr.Add('<spaces>              = /(?:\t|\s|\n)+/');
+//    Arr.Add('# XPEG - Parsing Expression Grammars (PEG) adapted');
+//    Arr.Add('#');
+//    Arr.Add('# Author: Helton Carlos de Souza <helton.development@gmail.com>');
+//    Arr.Add('#');
+//    Arr.Add('# Useful links:');
+//    Arr.Add('#   - PEG specification        <http://www.brynosaurus.com/pub/lang/peg.pdf>');
+//    Arr.Add('#   - Parsimonious (in Python) <https://github.com/erikrose/parsimonious>');
+//    Arr.Add('#   - Citrus (in Ruby)         <https://github.com/mjijackson/citrus>');
+//    Arr.Add('#   - Parselet (in Ruby)       <https://github.com/kschiess/parslet>');
+    Arr.Add('rules = _ rule+');
+    Arr.Add('rule = identifier assignment expression');
+    Arr.Add('assignment = "=" _');
+    Arr.Add('literal = /\".*?[^\\]\"/is _');
+    Arr.Add('expression = ored | sequence | term');
+    Arr.Add('or_term = "|" _ term');
+    Arr.Add('ored = term or_term+');
+    Arr.Add('sequence = term term+');
+    Arr.Add('negative_lookahead_term = "!" term _');
+    Arr.Add('lookahead_term = "&" term _');
+    Arr.Add('term = lookahead_term | negative_lookahead_term | quantified | repetition | atom');
+    Arr.Add('quantified = atom quantifier');
+    Arr.Add('atom = reference | literal | regex | parenthesized');
+    Arr.Add('regex = ///.*?[^\\]/// /[imesp]*/is _');
+    Arr.Add('parenthesized = "(" _ expression ")" _');
+    Arr.Add('quantifier = /[*+?]/ _');
+    Arr.Add('repetition = /{[0-9]+(\s*,\s*([0-9]+)?)?}/ _');
+    Arr.Add('reference = identifier !assignment');
+    Arr.Add('identifier = /[a-z_][a-z0-9_]*/i _');
+    Arr.Add('_ = /\s+/? / comment');
+    Arr.Add('comment = /#.*?(?:\r\n|$)/');
     Result := Arr.AsString;
   end;
 
 begin
-  BootstrappingGrammar := TBootstrappingGrammar.Create(nil);
+  BootstrappingGrammar := TBootstrappingGrammar.Create;
   try
     ShowMessage(BootstrappingGrammar.Parse(GetGrammarAsText).ToString);
+//    BootstrappingGrammar.ParseAndVisit(GetGrammarAsText);
   finally
     BootstrappingGrammar.Free;
   end;
