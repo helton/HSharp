@@ -42,24 +42,20 @@ var
   Child: INode;
   Method: TRttiMethod;
   ChildrenResults: IArray<TValue>;
-  Value: TValue;
 begin
   Result := nil;
   ChildrenResults := TArray<TValue>.Create;
   if Assigned(aNode.Children) then
   begin
     for Child in aNode.Children do
-    begin
-      Value := (Child as IVisitableNode).Accept(Self);
-      ChildrenResults.Add(Value);
-    end;
+      ChildrenResults.Add((Child as IVisitableNode).Accept(Self)); {TODO -oHelton -cQuestion : If is empty, add TValue.From<String>(Child.Text) ?}
   end;
   if not aNode.Name.IsEmpty then
   begin
     if FRuleMethodsDict.TryGetValue(aNode.Name, Method) then
       Result := Method.Invoke(TObject(FGrammar),
                               [TValue.From<INode>(aNode),
-                               TValue.From<IArray<TValue>>(ChildrenResults)]);
+                               TValue.From<IArray<TValue>>(ChildrenResults)]).AsType<TValue>;
   end;
 end;
 

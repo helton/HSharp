@@ -6,6 +6,7 @@ uses
   HSharp.Collections,
   HSharp.Collections.Interfaces,
   HSharp.PEG.Context,
+  HSharp.PEG.Grammar,
   HSharp.PEG.Expression,
   HSharp.PEG.Expression.Interfaces,
   HSharp.PEG.Node.Interfaces,

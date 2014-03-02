@@ -875,10 +875,13 @@ end;
 
 procedure TestSamples.TestArithmeticExpressions;
 var
-  AE: IGrammar;
+  AE: IArithmeticExpression;
 begin
   AE := TArithmeticExpression.Create;
-  ShowMessage(AE.ParseAndVisit('21+55').AsString);
+  CheckEquals(76, AE.Evaluate('21+55'));
+  CheckEquals(110, AE.Evaluate('11+22+33+44'));
+  CheckEquals(76, AE.Evaluate('    21 +    55'));
+  CheckEquals(3333, AE.Evaluate('1111+2222'));
 end;
 
 initialization

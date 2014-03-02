@@ -80,8 +80,11 @@ begin
 end;
 
 function TGrammar.Parse(const aText: string): INode;
+var
+  Context: IContext;
 begin
-  Result := FDefaultRule.Parse(TContext.Create(aText));
+  Context := TContext.Create(aText);
+  Result := FDefaultRule.Parse(Context);
 end;
 
 function TGrammar.ParseAndVisit(const aText: string): TValue;
