@@ -44,6 +44,7 @@ type
 implementation
 
 uses
+  Vcl.Dialogs, {TODO -oHelton -cRemove : Remove!}
   System.RegularExpressions;
 
 { TBootstrappingGrammar }
@@ -119,9 +120,12 @@ var
        TRuleReferenceExpression.Create(_)
       ]
     );
-    //literal = /\".*?[^\\]\"/is _
-    literal.Expression := TRegexExpression.Create('<\".*?[^\\]\">', [
-      TRegExOption.roIgnoreCase]);
+    //literal = /\".*?[^\\]\"/i _
+    literal.Expression := TSequenceExpression.Create(
+      [TRegexExpression.Create('\".*?[^\\]\"', [TRegExOption.roIgnoreCase]),
+       TRuleReferenceExpression.Create(_)
+      ]
+    );
     //expression = ored | sequence | term
     expression.Expression := TOneOfExpression.Create(
       [TRuleReferenceExpression.Create(ored),
@@ -189,10 +193,11 @@ var
        TRuleReferenceExpression.Create(parenthesized)
       ]
     );
-    //regex = ///.*?[^\\]/// /[imesp]*/is _
+    //regex = /\/.*?[^\\]\// /[imesp]*/i? _
     regex.Expression := TSequenceExpression.Create(
-      [TRegexExpression.Create('//.*?[^\\]//'),
-       TRegexExpression.Create('[imesp]*', [TRegExOption.roIgnoreCase])
+      [TRegexExpression.Create('\/.*?[^\\]\/'),
+       TRepeatOptionalExpression.Create(TRegexExpression.Create('[imesp]*', [TRegExOption.roIgnoreCase])),
+       TRuleReferenceExpression.Create(_)
       ]
     );
     //parenthesized = "(" _ expression ")" _
@@ -230,14 +235,14 @@ var
        TRuleReferenceExpression.Create(_)
       ]
     );
-    //_ = /\s+/? / comment
+    //_ = /\s+/? | comment
     _.Expression := TOneOfExpression.Create(
       [TRepeatOptionalExpression.Create(TRegexExpression.Create('\s+')),
        TRuleReferenceExpression.Create(comment)
       ]
     );
     //comment = /#.*?(?:\r\n|$)/
-    comment.Expression := TRegexExpression.Create('#.*?(?:\r\n|$)');
+    comment.Expression := TRegexExpression.Create('#.*?(?:' + sLineBreak + '|$)');
   end;
 
   procedure CreateRulesArray;

@@ -26,7 +26,8 @@ type
 implementation
 
 uses
-  System.StrUtils;
+  System.StrUtils,
+  System.SysUtils;
 
 { TContext }
 

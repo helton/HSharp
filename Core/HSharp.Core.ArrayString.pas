@@ -7,8 +7,9 @@ uses
   HSharp.Core.Arrays;
 
 type
-  IArrayString = interface(IArray<String>)
+  IArrayString = interface(IArray<string>)
     ['{F2ABB719-B7B2-42DC-B398-5556F8672585}']
+    procedure AddFormatted(const aItem: string; const aArgs: array of const);
     function AsString: string;
     procedure Indent(aLevel: Integer);
     function Join(aSeparator: string): string;
@@ -16,6 +17,7 @@ type
 
   TArrayString = class(TArray<string>, IArrayString)
   public
+    procedure AddFormatted(const aItem: string; const aArgs: array of const);
     function AsString: string;
     procedure Indent(aLevel: Integer);
     function Join(aSeparator: string): string;
@@ -28,6 +30,11 @@ uses
 
 { TArrayString }
 
+procedure TArrayString.AddFormatted(const aItem: string; const aArgs: array of const);
+begin
+  Add(Format(aItem, aArgs));
+end;
+
 function TArrayString.AsString: string;
 begin
   Result := Join(sLineBreak);
@@ -35,12 +42,12 @@ end;
 
 procedure TArrayString.Indent(aLevel: Integer);
 const
-  iSpacedPerLevel = 4;
+  iSpacesPerLevel = 2;
 begin
   Map(
     function (const aItem: string): string
     begin
-      Result := StringOfChar(' ', aLevel * iSpacedPerLevel) + aItem;
+      Result := StringOfChar(' ', aLevel * iSpacesPerLevel) + aItem;
     end
   );
 end;

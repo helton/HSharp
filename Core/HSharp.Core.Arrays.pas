@@ -16,7 +16,7 @@ type
     procedure SetItem(AIndex: Integer; const AValue: T);
     procedure Swap(var ALeft, ARight: T);
 
-    procedure Add(AItem: T);
+    procedure Add(const AItem: T);
     procedure AddRange(AItems: array of T);
     function Clone: IArray<T>;
     function Count: Integer;
@@ -45,7 +45,7 @@ type
     procedure SetItem(AIndex: Integer; const AValue: T);
     procedure Swap(var ALeft, ARight: T);
   public
-    procedure Add(AItem: T);
+    procedure Add(const AItem: T);
     procedure AddRange(AItems: array of T);
     function Clone: IArray<T>;
     function Count: Integer;
@@ -72,7 +72,7 @@ implementation
 
 { TArray<T> }
 
-procedure TArray<T>.Add(AItem: T);
+procedure TArray<T>.Add(const AItem: T);
 begin
   SetLength(FItems, System.Length(FItems) + 1);
   FItems[High(FItems)] := AItem;

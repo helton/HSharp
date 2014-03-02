@@ -10,7 +10,7 @@ uses
   HSharp.PEG.Context.Interfaces,
   HSharp.PEG.Grammar.Interfaces,
   HSharp.PEG.Node.Interfaces,
-  HSharp.PEG.Node.Visitor,
+  HSharp.PEG.Node.Visitors,
   HSharp.PEG.Rule.Interfaces;
 
 type
@@ -95,7 +95,7 @@ var
 begin
   Result := nil;
   Node := Parse(aText);
-  NodeVisitor := TNodeVisitor.Create(Self, FRuleMethodsDict);
+  NodeVisitor := TGrammarNodeVisitor.Create(Self, FRuleMethodsDict);
   if Supports(Node, IVisitableNode, VisitableNode) then
     Result := VisitableNode.Accept(NodeVisitor);
 end;

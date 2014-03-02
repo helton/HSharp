@@ -16,7 +16,7 @@ uses
   HSharp.PEG.GrammarVisitor.Attributes,
   HSharp.PEG.Node,
   HSharp.PEG.Node.Interfaces,
-  HSharp.PEG.Node.Visitor,
+  HSharp.PEG.Node.Visitors,
   HSharp.PEG.Rule,
   HSharp.PEG.Rule.Interfaces;
 
@@ -98,6 +98,16 @@ uses
   HSharp.Core.ArrayString,
   System.RegularExpressions,
   System.SysUtils;
+
+function GetPrintedTreeText(const aTree: INode): string;
+var
+  PrinterNodeVisitor: INodeVisitor;
+  Value: TValue;
+begin
+  PrinterNodeVisitor := TPrinterNodeVisitor.Create;
+  Value := (aTree as IVisitableNode).Accept(PrinterNodeVisitor);
+  Result := Value.AsString;
+end;
 
 { TestPEG }
 
@@ -508,7 +518,7 @@ var
     Arr.Add('rules = _ rule+');
     Arr.Add('rule = identifier assignment expression');
     Arr.Add('assignment = "=" _');
-    Arr.Add('literal = /\".*?[^\\]\"/is _');
+    Arr.Add('literal = /\".*?[^\\]\"/i _');
     Arr.Add('expression = ored | sequence | term');
     Arr.Add('or_term = "|" _ term');
     Arr.Add('ored = term or_term+');
@@ -518,21 +528,24 @@ var
     Arr.Add('term = lookahead_term | negative_lookahead_term | quantified | repetition | atom');
     Arr.Add('quantified = atom quantifier');
     Arr.Add('atom = reference | literal | regex | parenthesized');
-    Arr.Add('regex = ///.*?[^\\]/// /[imesp]*/is _');
+    Arr.Add('regex = /\/.*?[^\\]\// /[imesp]*/i? _');
     Arr.Add('parenthesized = "(" _ expression ")" _');
     Arr.Add('quantifier = /[*+?]/ _');
     Arr.Add('repetition = /{[0-9]+(\s*,\s*([0-9]+)?)?}/ _');
     Arr.Add('reference = identifier !assignment');
     Arr.Add('identifier = /[a-z_][a-z0-9_]*/i _');
-    Arr.Add('_ = /\s+/? / comment');
+    Arr.Add('_ = /\s+/? | comment');
     Arr.Add('comment = /#.*?(?:\r\n|$)/');
     Result := Arr.AsString;
   end;
 
+var
+  Tree: INode;
 begin
   BootstrappingGrammar := TBootstrappingGrammar.Create;
   try
-    ShowMessage(BootstrappingGrammar.Parse(GetGrammarAsText).ToString);
+    Tree := BootstrappingGrammar.Parse(GetGrammarAsText);
+    ShowMessage(GetPrintedTreeText(Tree));
 //    BootstrappingGrammar.ParseAndVisit(GetGrammarAsText);
   finally
     BootstrappingGrammar.Free;
@@ -878,7 +891,7 @@ begin
      TRegexExpression.Create('[a-z]+', [TRegExOption.roIgnoreCase])
     ]
   ));
-  ReturnedText := Rule.Parse(Context).ToString;
+  ReturnedText := GetPrintedTreeText(Rule.Parse(Context));
   CheckEquals(GetExpectedText, ReturnedText);
 end;
 

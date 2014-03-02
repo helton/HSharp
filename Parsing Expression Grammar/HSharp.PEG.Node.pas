@@ -27,7 +27,6 @@ type
   public
     constructor Create(const aName, aText: string; aIndex: Integer;
       const aChildren: IList<INode> = nil); reintroduce;
-    function ToString(aLevel: Integer = 0): string; reintroduce;
   end;
 
   TRegexNode = class(TNode, IRegexNode)
@@ -81,30 +80,6 @@ end;
 function TNode.GetText: string;
 begin
   Result := FText;
-end;
-
-function TNode.ToString(aLevel: Integer): string;
-var
-  Arr: IArrayString;
-  Child: INode;
-begin
-  Arr := TArrayString.Create;
-  if FName.IsEmpty then
-    Arr.Add('<node>')
-  else
-    Arr.Add('<node "' + FName + '">');
-  Arr.Add('  <text>' + FText + '</text>');
-  Arr.Add('  <index>' + FIndex.ToString + '</index>');
-  if Assigned(FChildren) then
-  begin
-    Arr.Add('  <children>');
-    for Child in FChildren do
-      Arr.Add(Child.ToString(aLevel + 1));
-    Arr.Add('  </children>');
-  end;
-  Arr.Add('</node>');
-  Arr.Indent(aLevel);
-  Result := Arr.AsString;
 end;
 
 { TRegexNode }

@@ -1,4 +1,4 @@
-unit HSharp.PEG.Node.Visitor;
+unit HSharp.PEG.Node.Visitors;
 
 interface
 
@@ -9,7 +9,7 @@ uses
   HSharp.PEG.Node.Interfaces;
 
 type
-  TNodeVisitor = class(TInterfacedObject, INodeVisitor)
+  TGrammarNodeVisitor = class(TInterfacedObject, INodeVisitor)
   strict private
     FGrammar: IGrammar;
     FRuleMethodsDict: IDictionary<string, TRttiMethod>;
@@ -19,17 +19,25 @@ type
     constructor Create(const aGrammar: IGrammar; const aRuleMethodsDict: IDictionary<string, TRttiMethod>); reintroduce;
   end;
 
+  TPrinterNodeVisitor = class(TInterfacedObject, INodeVisitor)
+  strict private
+    FIndent: Integer;
+  strict protected
+    function Visit(const aNode: INode): TValue;
+  end;
+
 implementation
 
 uses
   Vcl.Dialogs, {TODO -oHelton -cRemove : Remove!}
-
+  System.StrUtils,
   System.SysUtils,
-  HSharp.Core.Arrays;
+  HSharp.Core.Arrays,
+  HSharp.Core.ArrayString;
 
 { TNodeVisitor }
 
-constructor TNodeVisitor.Create(const aGrammar: IGrammar;
+constructor TGrammarNodeVisitor.Create(const aGrammar: IGrammar;
   const aRuleMethodsDict: IDictionary<string, TRttiMethod>);
 begin
   inherited Create;
@@ -37,7 +45,7 @@ begin
   FRuleMethodsDict := aRuleMethodsDict;
 end;
 
-function TNodeVisitor.Visit(const aNode: INode): TValue;
+function TGrammarNodeVisitor.Visit(const aNode: INode): TValue;
 var
   Child: INode;
   Method: TRttiMethod;
@@ -57,6 +65,31 @@ begin
                               [TValue.From<INode>(aNode),
                                TValue.From<IArray<TValue>>(ChildrenResults)]).AsType<TValue>;
   end;
+end;
+
+{ TPrinterNodeVisitor }
+
+function TPrinterNodeVisitor.Visit(const aNode: INode): TValue;
+var
+  Arr: IArrayString;
+  Child: INode;
+  Text: string;
+begin
+  Arr := TArrayString.Create;
+  Text := aNode.Text.Replace(sLineBreak, '\n');
+  if not aNode.Name.IsEmpty then
+    Arr.AddFormatted('<%s called "%s" matching "%s">', [IfThen(Supports(aNode, IRegexNode), 'RegexNode', 'Node'), aNode.Name, Text])
+  else
+    Arr.AddFormatted('<%s matching "%s">', [IfThen(Supports(aNode, IRegexNode), 'RegexNode', 'Node'), Text]);
+  if Assigned(aNode.Children) then
+  begin
+    Inc(FIndent);
+    for Child in aNode.Children do
+      Arr.Add((Child as IVisitableNode).Accept(Self).AsString);
+    Dec(FIndent);
+  end;
+  Arr.Indent(FIndent);
+  Result := Arr.AsString;
 end;
 
 end.

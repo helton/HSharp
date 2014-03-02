@@ -11,7 +11,7 @@
 rules = _ rule+
 rule = identifier assignment expression
 assignment = "=" _
-literal = /\".*?[^\\]\"/is _
+literal = /\".*?[^\\]\"/i _
 expression = ored | sequence | term
 or_term = "|" _ term
 ored = term or_term+
@@ -21,12 +21,11 @@ lookahead_term = "&" term _
 term = lookahead_term | negative_lookahead_term | quantified | repetition | atom
 quantified = atom quantifier
 atom = reference | literal | regex | parenthesized
-regex = ///.*?[^\\]/// /[imesp]*/is _
+regex = /\/.*?[^\\]\// /[imesp]*/i? _
 parenthesized = "(" _ expression ")" _
 quantifier = /[*+?]/ _
 repetition = /{[0-9]+(\s*,\s*([0-9]+)?)?}/ _
 reference = identifier !assignment
 identifier = /[a-z_][a-z0-9_]*/i _
-_ =  meaninglessness*
-meaninglessness = /\s+/ | comment
-comment = /#[^\r\n]*/s
+_ = /\s+/? | comment
+comment = /#.*?(?:\r\n|$)/

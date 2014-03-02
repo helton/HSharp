@@ -27,7 +27,6 @@ type
     function GetIndex: Integer;
     function GetName: string;
     function GetText: string;
-    function ToString(aLevel: Integer = 0): string;
     { properties }
     property Name: string read GetName;
     property Text: string read GetText;
