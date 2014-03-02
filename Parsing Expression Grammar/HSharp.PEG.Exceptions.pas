@@ -29,6 +29,7 @@ uses
 
 type
   EMatchError = class(Exception);
+  EIncompleteParseError = class(Exception);
 
 implementation
 

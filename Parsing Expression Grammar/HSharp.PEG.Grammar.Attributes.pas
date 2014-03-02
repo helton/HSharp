@@ -33,6 +33,8 @@ type
     property Rule: string read FRule;
   end;
 
+  RootRule = class(TCustomAttribute);
+
 implementation
 
 { RuleAttribute }

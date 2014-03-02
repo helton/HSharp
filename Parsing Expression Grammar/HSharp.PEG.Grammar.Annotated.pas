@@ -25,18 +25,48 @@ unit HSharp.PEG.Grammar.Annotated;
 interface
 
 uses
+  HSharp.PEG.Rule.Interfaces,
   HSharp.PEG.Grammar,
   HSharp.PEG.Grammar.Interfaces;
 
 type
-  TAnnotatedGrammar = class(TGrammar, IGrammar)
+  TAnnotatedGrammar = class(TGrammar)
   strict private
     FGrammarText: string;
   public
-    constructor Create; overload; virtual;
+    constructor Create(const aRules: array of IRule;
+      const aDefaultRule: IRule = nil); override;
     property GrammarText: string read FGrammarText;
   end;
 
 implementation
+
+uses
+  System.Rtti,
+  HSharp.Core.ArrayString,
+  HSharp.Core.Rtti,
+  HSharp.PEG.Grammar.Attributes;
+
+{ TAnnotatedGrammar }
+
+constructor TAnnotatedGrammar.Create(const aRules: array of IRule;
+  const aDefaultRule: IRule);
+var
+  Method: TRttiMethod;
+  Attribute: TCustomAttribute;
+  Grammar: IArrayString;
+begin
+  inherited;
+  Grammar := TArrayString.Create;
+  for Method in RttiContext.GetType(ClassType).GetMethods do
+  begin
+    for Attribute in Method.GetAttributes do
+    begin
+      if Attribute is RuleAttribute then
+        Grammar.Add(RuleAttribute(Attribute).Rule);
+    end;
+  end;
+  FGrammarText := Grammar.AsString;
+end;
 
 end.

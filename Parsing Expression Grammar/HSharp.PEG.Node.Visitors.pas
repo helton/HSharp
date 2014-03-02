@@ -55,7 +55,8 @@ uses
   System.StrUtils,
   System.SysUtils,
   HSharp.Core.Arrays,
-  HSharp.Core.ArrayString;
+  HSharp.Core.ArrayString,
+  HSharp.Core.Rtti;
 
 { TNodeVisitor }
 
@@ -70,8 +71,28 @@ end;
 function TGrammarNodeVisitor.Visit(const aNode: INode): TValue;
 var
   Child: INode;
-  Method: TRttiMethod;
   ChildrenResults: IArray<TValue>;
+
+  function GetResultFromInvokedMethod(const aMethod: TRttiMethod): TValue;
+  begin
+    Result := aMethod.Invoke(TObject(FGrammar),
+                             [TValue.From<INode>(aNode),
+                              TValue.From<IArray<TValue>>(
+                                ChildrenResults)]).AsType<TValue>;
+  end;
+
+  function GenericVisitCall: TValue;
+  var
+    Method: TRttiMethod;
+  begin
+    Result := nil;
+    Method := RttiContext.GetType(TObject(FGrammar).ClassType).GetMethod('GenericVisit');
+    if Assigned(Method) then
+      Result := GetResultFromInvokedMethod(Method);
+  end;
+
+var
+  Method: TRttiMethod;
 begin
   Result := nil;
   ChildrenResults := TArray<TValue>.Create;
@@ -83,10 +104,12 @@ begin
   if not aNode.Name.IsEmpty then
   begin
     if FRuleMethodsDict.TryGetValue(aNode.Name, Method) then
-      Result := Method.Invoke(TObject(FGrammar),
-                              [TValue.From<INode>(aNode),
-                               TValue.From<IArray<TValue>>(ChildrenResults)]).AsType<TValue>;
-  end;
+      Result := GetResultFromInvokedMethod(Method)
+    else
+      Result := GenericVisitCall;
+  end
+  else
+    Result := GenericVisitCall;
 end;
 
 { TPrinterNodeVisitor }

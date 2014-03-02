@@ -27,6 +27,7 @@ type
     function Visit_Number(const aNode: INode; const aArgs: IArray<TValue>): TValue;
     { <_> = /\s+/ }
     function Visit__(const aNode: INode; const aArgs: IArray<TValue>): TValue;
+    function GenericVisit(const aNode: INode; const aArgs: IArray<TValue>): TValue;
   public
     constructor Create; overload;
     function Evaluate(const aExpression: string): Integer;
@@ -87,6 +88,11 @@ end;
 function TArithmeticExpression.Evaluate(const aExpression: string): Integer;
 begin
   Result := ParseAndVisit(aExpression).AsInteger;
+end;
+
+function TArithmeticExpression.GenericVisit(const aNode: INode;
+  const aArgs: IArray<TValue>): TValue;
+begin
 end;
 
 { <add> = number ("+" number)* }

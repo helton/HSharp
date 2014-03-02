@@ -84,6 +84,7 @@ type
   published
     procedure Test;
     procedure TestBootstrappingGrammar;
+    procedure TestBootstrappingGrammarGeneratedRules;
   end;
 
   TestNode = class(TTestCase)
@@ -520,8 +521,6 @@ begin
 end;
 
 procedure TestGrammar.TestBootstrappingGrammar;
-var
-  BootstrappingGrammar: IBootstrappingGrammar;
 
   function GetGrammarAsText: string;
   var
@@ -561,13 +560,34 @@ var
     Result := Arr.AsString;
   end;
 
-//var
-//  Tree: INode;
+var
+  BootstrappingGrammar: IBootstrappingGrammar;
+  Tree: INode;
 begin
   BootstrappingGrammar := TBootstrappingGrammar.Create;
-//    Tree := BootstrappingGrammar.Parse(GetGrammarAsText);
-//    ShowMessage(GetPrintedTreeText(Tree));
-    BootstrappingGrammar.Go;
+  Tree := BootstrappingGrammar.Parse(GetGrammarAsText);
+  ShowMessage(GetPrintedTreeText(Tree));
+end;
+
+procedure TestGrammar.TestBootstrappingGrammarGeneratedRules;
+
+  function GetSampleGrammar: string;
+  var
+    Arr: IArrayString;
+  begin
+    Arr := TArrayString.Create;
+    Arr.Add('exp = int "+" int');
+    Arr.Add('int = /[0-9]+/');
+    Result := Arr.AsString;
+  end;
+
+var
+  Tree: INode;
+  BootstrappingGrammar: IBootstrappingGrammar;
+begin
+  BootstrappingGrammar := TBootstrappingGrammar.Create;
+  Tree := BootstrappingGrammar.Parse(GetSampleGrammar);
+  ShowMessage(GetPrintedTreeText(Tree));
 end;
 
 { TestNode }

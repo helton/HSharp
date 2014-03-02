@@ -27,70 +27,51 @@ interface
 uses
   System.Rtti,
   HSharp.Core.Arrays,
+  HSharp.Collections,
+  HSharp.Collections.Interfaces,
   HSharp.PEG.Expression,
   HSharp.PEG.Expression.Interfaces,
   HSharp.PEG.Grammar,
-  HSharp.PEG.Grammar.Annotated,
-  HSharp.PEG.Grammar.Attributes,
   HSharp.PEG.Grammar.Interfaces,
   HSharp.PEG.Node.Interfaces,
   HSharp.PEG.Rule,
   HSharp.PEG.Rule.Interfaces;
 
 type
-  IBootstrappingGrammar = interface
+  IBootstrappingGrammar = interface(IGrammar)
     ['{D83E083A-9452-4C4F-8DFB-379CF81BFA1D}']
-    function ParseTree: INode;
+    function GetRules: IList<IRule>;
   end;
 
-  TBootstrappingGrammar = class(TAnnotatedGrammar, IBootstrappingGrammar)
+  TBootstrappingGrammar = class(TGrammar, IBootstrappingGrammar)
+  strict private
+    FRules: IList<IRule>;
   public
-    [Rule('rules = _ rule+')]
     function Visit_rules(const aNode: INode; const aArgs: IArray<TValue>): TValue;
-    [Rule('rule = identifier assignment expression')]
     function Visit_rule(const aNode: INode; const aArgs: IArray<TValue>): TValue;
-    [Rule('assignment = "=" _')]
     function Visit_assignment(const aNode: INode; const aArgs: IArray<TValue>): TValue;
-    [Rule('literal = /\".*?[^\\]\"/i _')]
     function Visit_literal(const aNode: INode; const aArgs: IArray<TValue>): TValue;
-    [Rule('expression = ored | sequence | term')]
     function Visit_expression(const aNode: INode; const aArgs: IArray<TValue>): TValue;
-    [Rule('or_term = "|" _ term')]
     function Visit_or_term(const aNode: INode; const aArgs: IArray<TValue>): TValue;
-    [Rule('ored = term or_term+')]
     function Visit_ored(const aNode: INode; const aArgs: IArray<TValue>): TValue;
-    [Rule('sequence = term term+')]
     function Visit_sequence(const aNode: INode; const aArgs: IArray<TValue>): TValue;
-    [Rule('negative_lookahead_term = "!" term _')]
     function Visit_negative_lookahead_term(const aNode: INode; const aArgs: IArray<TValue>): TValue;
-    [Rule('lookahead_term = "&" term _')]
     function Visit_lookahead_term(const aNode: INode; const aArgs: IArray<TValue>): TValue;
-    [Rule('term = lookahead_term | negative_lookahead_term | quantified | repetition | atom')]
     function Visit_term(const aNode: INode; const aArgs: IArray<TValue>): TValue;
-    [Rule('quantified = atom quantifier')]
     function Visit_quantified(const aNode: INode; const aArgs: IArray<TValue>): TValue;
-    [Rule('atom = reference | literal | regex | parenthesized')]
     function Visit_atom(const aNode: INode; const aArgs: IArray<TValue>): TValue;
-    [Rule('regex = /\/.*?[^\\]\// /[imesp]*/i? _')]
     function Visit_regex(const aNode: INode; const aArgs: IArray<TValue>): TValue;
-    [Rule('parenthesized = "(" _ expression ")" _')]
     function Visit_parenthesized(const aNode: INode; const aArgs: IArray<TValue>): TValue;
-    [Rule('quantifier = /[*+?]/ _')]
     function Visit_quantifier(const aNode: INode; const aArgs: IArray<TValue>): TValue;
-    [Rule('repetition = /{[0-9]+(\s*,\s*([0-9]+)?)?}/ _')]
     function Visit_repetition(const aNode: INode; const aArgs: IArray<TValue>): TValue;
-    [Rule('reference = identifier !assignment')]
     function Visit_reference(const aNode: INode; const aArgs: IArray<TValue>): TValue;
-    [Rule('identifier = /[a-z_][a-z0-9_]*/i _')]
     function Visit_identifier(const aNode: INode; const aArgs: IArray<TValue>): TValue;
-    [Rule('_ = /\s+/? | comment')]
     function Visit__(const aNode: INode; const aArgs: IArray<TValue>): TValue;
-    [Rule('comment = /#.*?(?:\r\n|$)/')]
     function Visit_comment(const aNode: INode; const aArgs: IArray<TValue>): TValue;
   public
-    constructor Create; override;
+    constructor Create; overload;
     { IBootstrappingGrammar }
-    function ParseTree: INode;
+    function GetRules: IList<IRule>;
   end;
 
 implementation
@@ -334,11 +315,12 @@ begin
   SetupRules;
   CreateRulesArray;
   inherited Create(RulesArray);
+  FRules := Collections.CreateList<IRule>;
 end;
 
-function TBootstrappingGrammar.ParseTree: INode;
+function TBootstrappingGrammar.GetRules: IList<IRule>;
 begin
-  Result := Parse(GrammarText);
+  Result := FRules;
 end;
 
 function TBootstrappingGrammar.Visit_assignment(const aNode: INode;

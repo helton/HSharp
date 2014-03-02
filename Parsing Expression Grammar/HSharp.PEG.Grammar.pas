@@ -30,6 +30,7 @@ uses
   HSharp.Collections.Interfaces,
   HSharp.PEG.Context,
   HSharp.PEG.Context.Interfaces,
+  HSharp.PEG.Exceptions,
   HSharp.PEG.Grammar.Interfaces,
   HSharp.PEG.Node.Interfaces,
   HSharp.PEG.Node.Visitors,
@@ -39,10 +40,11 @@ type
   TGrammar = class(TInterfacedObject, IGrammar)
   strict private
     FRuleMethodsDict: IDictionary<string, TRttiMethod>;
-    FDefaultRule: IRule; //should be a weak reference?
+    FRootRule: IRule; //should be a weak reference?
     FRules: IList<IRule>;
   public
-    constructor Create(const aRules: array of IRule; const aDefaultRule: IRule = nil); reintroduce;
+    constructor Create(const aRules: array of IRule;
+      const aRootRule: IRule = nil); overload; virtual;
     function Parse(const aText: string): INode;
     function ParseAndVisit(const aText: string): TValue;
     function AsString: string;
@@ -64,17 +66,17 @@ var
   Grammar: IArrayString;
 begin
   Grammar := TArrayString.Create;
-  Grammar.Add(FDefaultRule.AsString);
+  Grammar.Add(FRootRule.AsString);
   for Rule in FRules do
   begin
-    if Rule <> FDefaultRule then
+    if Rule <> FRootRule then
       Grammar.Add(Rule.AsString);
   end;
   Result := Grammar.AsString;
 end;
 
 constructor TGrammar.Create(const aRules: array of IRule;
-  const aDefaultRule: IRule);
+  const aRootRule: IRule);
 
   procedure MapRules;
   var
@@ -94,10 +96,10 @@ begin
   inherited Create;
   FRules := Collections.CreateList<IRule>;
   FRules.AddRange(aRules);
-  if Assigned(aDefaultRule) then
-    FDefaultRule := aDefaultRule
+  if Assigned(aRootRule) then
+    FRootRule := aRootRule
   else
-    FDefaultRule := FRules.First;
+    FRootRule := FRules.First;
   MapRules;
 end;
 
@@ -106,7 +108,11 @@ var
   Context: IContext;
 begin
   Context := TContext.Create(aText);
-  Result := FDefaultRule.Parse(Context);
+  Result := FRootRule.Parse(Context);
+  if not Context.Text.IsEmpty then
+    raise EIncompleteParseError.CreateFmt('Rule "%s" matched in its entirety, ' +
+      'but it didn''t consume all the text. The non-matching portion of the ' +
+      'text is "%s"', [FRootRule.Name, Context.Text]);
 end;
 
 function TGrammar.ParseAndVisit(const aText: string): TValue;
