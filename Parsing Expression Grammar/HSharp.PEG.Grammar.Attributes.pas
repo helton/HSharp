@@ -20,29 +20,27 @@
 {                                                                           }
 {***************************************************************************}
 
-unit HSharp.DesignPatterns.Singleton;
+unit HSharp.PEG.Grammar.Attributes;
 
 interface
 
 type
-  Singleton<T: class, constructor> = record
+  RuleAttribute = class(TCustomAttribute)
   strict private
-    FInstance: T;
-  private
-    function GetInstance: T;
+    FRule: string;
   public
-    property Instance: T read GetInstance;
+    constructor Create(aRule: string);
+    property Rule: string read FRule;
   end;
 
 implementation
 
-{ Singleton<T> }
+{ RuleAttribute }
 
-function Singleton<T>.GetInstance: T;
+constructor RuleAttribute.Create(aRule: string);
 begin
-  if not Assigned(FInstance) then
-    FInstance := T.Create;
-  Result := FInstance;
+  inherited Create;
+  FRule := aRule;
 end;
 
 end.

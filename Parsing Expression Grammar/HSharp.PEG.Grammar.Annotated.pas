@@ -20,29 +20,23 @@
 {                                                                           }
 {***************************************************************************}
 
-unit HSharp.DesignPatterns.Singleton;
+unit HSharp.PEG.Grammar.Annotated;
 
 interface
 
+uses
+  HSharp.PEG.Grammar,
+  HSharp.PEG.Grammar.Interfaces;
+
 type
-  Singleton<T: class, constructor> = record
+  TAnnotatedGrammar = class(TGrammar, IGrammar)
   strict private
-    FInstance: T;
-  private
-    function GetInstance: T;
+    FGrammarText: string;
   public
-    property Instance: T read GetInstance;
+    constructor Create; overload; virtual;
+    property GrammarText: string read FGrammarText;
   end;
 
 implementation
-
-{ Singleton<T> }
-
-function Singleton<T>.GetInstance: T;
-begin
-  if not Assigned(FInstance) then
-    FInstance := T.Create;
-  Result := FInstance;
-end;
 
 end.
