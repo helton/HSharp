@@ -10,22 +10,23 @@ uses
   HSharp.PEG.Node.Interfaces;
 
 type
-  TNode = class(TInterfacedObject, INode)
+  TNode = class(TInterfacedObject, INode, IVisitableNode)
   strict private
-    FValue: TValue;
+    FName: string;
     FText: string;
     FIndex: Integer;
     FChildren: IList<INode>;
   strict protected
-    procedure SetValue(const aValue: TValue);
-  public
-    constructor Create(const aText: string; aIndex: Integer;
-      const aChildren: IList<INode> = nil); reintroduce;
     { INode }
-    function GetValue: TValue;
-    function GetText: string;
-    function GetIndex: Integer;
     function GetChildren: IList<INode>;
+    function GetIndex: Integer;
+    function GetName: string;
+    function GetText: string;
+    { IVisitableNode }
+    function Accept(const aVisitor: INodeVisitor): TValue;
+  public
+    constructor Create(const aName, aText: string; aIndex: Integer;
+      const aChildren: IList<INode> = nil); reintroduce;
     function ToString(aLevel: Integer = 0): string; reintroduce;
   end;
 
@@ -35,7 +36,7 @@ type
   strict protected
     function GetMatch: TMatch;
   public
-    constructor Create(aMatch: TMatch; aIndex: Integer;
+    constructor Create(const aName: string; aMatch: TMatch; aIndex: Integer;
        const aChildren: IList<INode> = nil); reintroduce;
   end;
 
@@ -47,11 +48,16 @@ uses
 
 { TNode }
 
-constructor TNode.Create(const aText: string; aIndex: Integer;
+function TNode.Accept(const aVisitor: INodeVisitor): TValue;
+begin
+  Result := aVisitor.Visit(Self);
+end;
+
+constructor TNode.Create(const aName, aText: string; aIndex: Integer;
   const aChildren: IList<INode>);
 begin
   inherited Create;
-  FValue := aText;
+  FName := aName;
   FText := aText;
   FIndex := aIndex;
   FChildren := aChildren;
@@ -67,29 +73,26 @@ begin
   Result := FIndex;
 end;
 
+function TNode.GetName: string;
+begin
+  Result := FName;
+end;
+
 function TNode.GetText: string;
 begin
   Result := FText;
 end;
 
-function TNode.GetValue: TValue;
-begin
-  Result := FValue;
-end;
-
-procedure TNode.SetValue(const aValue: TValue);
-begin
-  FValue := aValue;
-end;
-
 function TNode.ToString(aLevel: Integer): string;
 var
-  Arr: TArrayString;
+  Arr: IArrayString;
   Child: INode;
 begin
   Arr := TArrayString.Create;
-  Arr.Add('<node>');
-  Arr.Add('  <value>' + FValue.AsString + '</value>');
+  if FName.IsEmpty then
+    Arr.Add('<node>')
+  else
+    Arr.Add('<node "' + FName + '">');
   Arr.Add('  <text>' + FText + '</text>');
   Arr.Add('  <index>' + FIndex.ToString + '</index>');
   if Assigned(FChildren) then
@@ -106,10 +109,10 @@ end;
 
 { TRegexNode }
 
-constructor TRegexNode.Create(aMatch: TMatch; aIndex: Integer;
-  const aChildren: IList<INode>);
+constructor TRegexNode.Create(const aName: string; aMatch: TMatch;
+  aIndex: Integer; const aChildren: IList<INode>);
 begin
-  inherited Create(aMatch.Value, aIndex, aChildren);
+  inherited Create(aName, aMatch.Value, aIndex, aChildren);
   FMatch := aMatch;
 end;
 

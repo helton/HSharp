@@ -9,15 +9,16 @@ uses
 type
   IArrayString = interface(IArray<String>)
     ['{F2ABB719-B7B2-42DC-B398-5556F8672585}']
-    function Join(aSeparator: string): string;
     function AsString: string;
+    procedure Indent(aLevel: Integer);
+    function Join(aSeparator: string): string;
   end;
 
   TArrayString = class(TArray<string>, IArrayString)
   public
+    function AsString: string;
     procedure Indent(aLevel: Integer);
     function Join(aSeparator: string): string;
-    function AsString: string;
   end;
 
 implementation

@@ -6,15 +6,13 @@ uses
   HSharp.PEG.Context.Interfaces,
   HSharp.PEG.Expression.Interfaces,
   HSharp.PEG.Node.Interfaces,
-  HSharp.PEG.Rule.Interfaces,
-  HSharp.PEG.Types;
+  HSharp.PEG.Rule.Interfaces;
 
 type
   TRule = class(TInterfacedObject, IRule)
   strict private
     FName: string;
     FExpression: IExpression;
-    FExpressionHandler: TExpressionHandler;
   strict protected
     function GetName: string;
     function GetExpression: IExpression;
@@ -22,23 +20,20 @@ type
   public
     function AsString: string;
     function Parse(const aContext: IContext): INode;
-    constructor Create(const aName: string; const aExpression: IExpression = nil;
-      const aExpressionHandler: TExpressionHandler = nil); reintroduce;
+    constructor Create(const aName: string; const aExpression: IExpression = nil); reintroduce;
   end;
 
 implementation
 
 { TRule }
 
-constructor TRule.Create(const aName: string; const aExpression: IExpression;
-  const aExpressionHandler: TExpressionHandler);
+constructor TRule.Create(const aName: string; const aExpression: IExpression);
 begin
   inherited Create;
   FName := aName;
   FExpression := aExpression;
-  FExpressionHandler := aExpressionHandler;
-  if Assigned(FExpression) and Assigned(FExpressionHandler) then
-    FExpression.ExpressionHandler := FExpressionHandler;
+  if Assigned(FExpression) then
+    FExpression.Name := FName;
 end;
 
 function TRule.GetExpression: IExpression;
@@ -59,7 +54,7 @@ end;
 procedure TRule.SetExpression(const aExpression: IExpression);
 begin
   FExpression := aExpression;
-  FExpression.ExpressionHandler := FExpressionHandler;
+  FExpression.Name := FName;
 end;
 
 function TRule.AsString: string;

@@ -12,8 +12,7 @@ uses
   HSharp.PEG.Expression.Interfaces,
   HSharp.PEG.Node,
   HSharp.PEG.Node.Interfaces,
-  HSharp.PEG.Rule.Interfaces,
-  HSharp.PEG.Types;
+  HSharp.PEG.Rule.Interfaces;
 
 type
   {$REGION 'Base/abstract classes'}
@@ -21,17 +20,18 @@ type
   // A thing that can be matched against a piece of text
   TExpression = class abstract(TInterfacedObject, IExpression)
   strict private
-    FExpressionHandler: TExpressionHandler;
+    FName: string;
   strict protected
-    function GetExpressionHandler: TExpressionHandler;
-    procedure SetExpressionHandler(aExpressionHandler: TExpressionHandler);
+    { IExpression }
+    procedure SetName(const aName: string);
+    function GetName: string;
     function ApplyExpression(const aContext: IContext): INode; virtual; abstract;
   public
+    constructor Create(const aName: string); overload;
     function IsMatch(const aContext: IContext): Boolean;
     function Match(const aContext: IContext): INode;
     function AsString: string; virtual; abstract;
-    property ExpressionHandler: TExpressionHandler read GetExpressionHandler
-      write SetExpressionHandler;
+    property Name: string read GetName write SetName;
   end;
 
   // A container that hold a simple expression
@@ -202,9 +202,15 @@ uses
 
 { TExpression }
 
-function TExpression.GetExpressionHandler: TExpressionHandler;
+constructor TExpression.Create(const aName: string);
 begin
-  Result := FExpressionHandler;
+  inherited Create;
+  FName := aName;
+end;
+
+function TExpression.GetName: string;
+begin
+  Result := FName;
 end;
 
 function TExpression.IsMatch(const aContext: IContext): Boolean;
@@ -227,20 +233,14 @@ var
 begin
   SavedIndex := aContext.Index;
   Result := ApplyExpression(aContext);
-  if Assigned(Result) then
-  begin
-    if Assigned(FExpressionHandler) then
-      Result.Value := FExpressionHandler(Result);
-  end
-  else
-    raise EMatchError.Create('Can''t match text at position = ' +
-      SavedIndex.ToString);
+  if not Assigned(Result) then
+    raise EMatchError.Create('Can''t match text at position ' +
+      SavedIndex.ToString + ' after "' + LeftStr(aContext.Text, 20) + '" ...');
 end;
 
-procedure TExpression.SetExpressionHandler(
-  aExpressionHandler: TExpressionHandler);
+procedure TExpression.SetName(const aName: string);
 begin
-  FExpressionHandler := aExpressionHandler;
+  FName := aName;
 end;
 
 { TRegexExpression }
@@ -263,7 +263,7 @@ begin
   if Match.Success then
   begin
     aContext.IncIndex(Match.Index + Match.Length - 1);
-    Result := TRegexNode.Create(Match, PreviousIndex);
+    Result := TRegexNode.Create(Name, Match, PreviousIndex);
   end;
 end;
 
@@ -296,7 +296,7 @@ begin
   if aContext.Text.StartsWith(FLiteral) then
   begin
     aContext.IncIndex(FLiteral.Length);
-    Result := TNode.Create(FLiteral, PreviousIndex);
+    Result := TNode.Create(Name, FLiteral, PreviousIndex);
   end;
 end;
 
@@ -344,7 +344,7 @@ begin
   end;
   if FullText.IsEmpty then
     Children := nil;
-  Result := TNode.Create(FullText, PreviousIndex, Children);
+  Result := TNode.Create(Name, FullText, PreviousIndex, Children);
 end;
 
 function TSequenceExpression.AsString: string;
@@ -434,7 +434,7 @@ begin
   PreviousIndex := aContext.Index;
   aContext.SaveState;
   if not Expression.IsMatch(aContext) then
-    Result := TNode.Create('', PreviousIndex);  {TODO -oHelton -cCheck : Is is right?}
+    Result := TNode.Create(Name, '', PreviousIndex);  {TODO -oHelton -cCheck : Is is right?}
   aContext.RestoreState;
 end;
 
@@ -499,7 +499,7 @@ begin
   end;
   if FullText.IsEmpty then
     Children := nil;
-  Result := TNode.Create(FullText, PreviousIndex, Children);
+  Result := TNode.Create(Name, FullText, PreviousIndex, Children);
 end;
 
 function TRepeatRangeExpression.AsString: string;
@@ -566,7 +566,7 @@ begin
   end;
   if FullText.IsEmpty then
     Children := nil;
-  Result := TNode.Create(FullText, PreviousIndex, Children);
+  Result := TNode.Create(Name, FullText, PreviousIndex, Children);
 end;
 
 function TRepeatAtLeastExpression.AsString: string;
@@ -591,7 +591,7 @@ var
   Node: INode;
 begin
   Node := inherited;
-  Result := TNode.Create(Node.Text, Node.Index, nil);
+  Result := TNode.Create(Name, Node.Text, Node.Index, nil);
 end;
 
 function TRepeatOptionalExpression.AsString: string;

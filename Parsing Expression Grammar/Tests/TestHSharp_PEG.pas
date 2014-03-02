@@ -16,6 +16,7 @@ uses
   HSharp.PEG.GrammarVisitor.Attributes,
   HSharp.PEG.Node,
   HSharp.PEG.Node.Interfaces,
+  HSharp.PEG.Node.Visitor,
   HSharp.PEG.Rule,
   HSharp.PEG.Rule.Interfaces;
 
@@ -50,19 +51,16 @@ type
     procedure RepeatExactlyExpression_ShouldMatchCorrectly;
     procedure RepeatAtLeastExpression_ShouldMatchCorrectly;
     procedure RepeatUpToExpression_ShouldMatchCorrectly;
-    procedure TestExpressionHandler;
   end;
 
   TestRule = class(TTestCase)
   published
     procedure WhenCallAsString_ShouldFormatCorrectly;
-    procedure TestExpressionHandler;
   end;
 
   TestGrammar = class(TTestCase)
   published
     procedure Test;
-    procedure TestExpressionGrammarVisitor;
     procedure TestBootstrappingGrammar;
   end;
 
@@ -85,14 +83,18 @@ type
     procedure TestToString;
   end;
 
+  TestSamples = class(TTestCase)
+  published
+    procedure TestArithmeticExpressions;
+  end;
+
 implementation
 
 uses
   System.Rtti,
 
   Vcl.Dialogs,
-
-  Test.ExpressionGrammar,
+  Sample.ArithmeticExpression,
   HSharp.Core.ArrayString,
   System.RegularExpressions,
   System.SysUtils;
@@ -354,32 +356,6 @@ begin
   CheckEquals('', Context.Text, 'All text should be matched');
 end;
 
-procedure TestExpression.TestExpressionHandler;
-var
-  InternalExpression, Seq: IExpression;
-  Context: IContext;
-  InternalTextMatched: string;
-begin
-  Context := TContext.Create('literal_text 0123456789 anyIdentifier');
-  InternalExpression := TRegexExpression.Create('[0-9]+');
-  Seq := TSequenceExpression.Create(
-    [TLiteralExpression.Create('literal_text'),
-     TLiteralExpression.Create(' '),
-     InternalExpression,
-     TLiteralExpression.Create(' '),
-     TRegexExpression.Create('[a-z]+', [TRegExOption.roIgnoreCase])
-    ]
-  );
-  InternalExpression.ExpressionHandler :=
-    function (const aNode: INode): TValue
-    begin
-      Result := aNode.Text;
-      InternalTextMatched := Result.AsString;
-    end;
-  Seq.Match(Context);
-  CheckEquals('0123456789', InternalTextMatched);
-end;
-
 procedure TestExpression.WhenCallAsStringOnRegexExpression_ShouldFormatCorrectly;
 var
   Expr: IExpression;
@@ -424,37 +400,6 @@ begin
 end;
 
 { TestRule }
-
-procedure TestRule.TestExpressionHandler;
-var
-  Context: IContext;
-  InternalTextMatchedNode, InternalTextMatched0, InternalTextMatched2, InternalTextMatched4: string;
-  Rule: IRule;
-begin
-  Context := TContext.Create('literal_text 0123456789 anyIdentifier');
-  Rule := TRule.Create('expression_handler',
-    TSequenceExpression.Create(
-    [TLiteralExpression.Create('literal_text'),
-     TLiteralExpression.Create(' '),
-     TRegexExpression.Create('[0-9]+'),
-     TLiteralExpression.Create(' '),
-     TRegexExpression.Create('[a-z]+', [TRegExOption.roIgnoreCase])
-    ]
-  ),
-  function(const aNode: INode): TValue
-  begin
-    Result := aNode.Text;
-    InternalTextMatched0 := aNode.Children[0].Text;
-    InternalTextMatched2 := aNode.Children[2].Text;
-    InternalTextMatched4 := aNode.Children[4].Text;
-    InternalTextMatchedNode := Result.AsString;
-  end);
-  Rule.Parse(Context);
-  CheckEquals('literal_text 0123456789 anyIdentifier', InternalTextMatchedNode);
-  CheckEquals('literal_text', InternalTextMatched0);
-  CheckEquals('0123456789', InternalTextMatched2);
-  CheckEquals('anyIdentifier', InternalTextMatched4);
-end;
 
 procedure TestRule.WhenCallAsString_ShouldFormatCorrectly;
 var
@@ -545,24 +490,41 @@ end;
 procedure TestGrammar.TestBootstrappingGrammar;
 var
   BootstrappingGrammar: TBootstrappingGrammar;
+
+  function GetGrammarAsText: string;
+  var
+    Arr: IArrayString;
+  begin
+    Arr := TArrayString.Create;
+    Arr.Add('<rules>                    = rule+');
+    Arr.Add('<rule>                     = rule_identifier assignment expression');
+    Arr.Add('<expression>               = sequence ("|" sequence)*');
+    Arr.Add('<sequence>                 = prefix*');
+    Arr.Add('<prefix>                   = lookahead_assertion? suffix');
+    Arr.Add('<suffix>                   = primary quantifier?');
+    Arr.Add('<primary>                  = rule_reference');
+    Arr.Add('                           |  parenthesized_expression');
+    Arr.Add('                           |  literal');
+    Arr.Add('                           |  regex');
+    Arr.Add('<parenthesized_expression> = "(" expression ")"');
+    Arr.Add('<assignment>          = "="');
+    Arr.Add('<rule_identifier>     = /<[a-z_][a-z0-9_]*>/i');
+    Arr.Add('<regex>               = ///.*?[^\\]//[imesp]*/is');
+    Arr.Add('<literal>             = /\".*?[^\\]\"/is');
+    Arr.Add('<rule_reference>      = /[a-z_][a-z0-9_]*/i');
+    Arr.Add('<lookahead_assertion> = /[&!]/');
+    Arr.Add('<quantifier>          = /[?*+]|{[0-9]+(\s*,\s*([0-9]+)?)?}/');
+    Arr.Add('<comment>             = /#[^\r\n]*/');
+    Arr.Add('<spaces>              = /(?:\t|\s|\n)+/');
+    Result := Arr.AsString;
+  end;
+
 begin
   BootstrappingGrammar := TBootstrappingGrammar.Create(nil);
   try
-    {}
+    ShowMessage(BootstrappingGrammar.Parse(GetGrammarAsText).ToString);
   finally
     BootstrappingGrammar.Free;
-  end;
-end;
-
-procedure TestGrammar.TestExpressionGrammarVisitor;
-var
-  GrammarVisitor: TExpressionGrammarVisitor;
-begin
-  GrammarVisitor := TExpressionGrammarVisitor.Create;
-  try
-
-  finally
-    GrammarVisitor.Free;
   end;
 end;
 
@@ -862,36 +824,30 @@ var
 
   function GetExpectedText: string;
   var
-    Arr: TArrayString;
+    Arr: IArrayString;
   begin
     Arr := TArrayString.Create;
-    Arr.Add('<node>');
-    Arr.Add('  <value>literal_text 0123456789 anyIdentifier</value>');
+    Arr.Add('<node "expression_handler">');
     Arr.Add('  <text>literal_text 0123456789 anyIdentifier</text>');
     Arr.Add('  <index>0</index>');
     Arr.Add('  <children>');
     Arr.Add('    <node>');
-    Arr.Add('      <value>literal_text</value>');
     Arr.Add('      <text>literal_text</text>');
     Arr.Add('      <index>0</index>');
     Arr.Add('    </node>');
     Arr.Add('    <node>');
-    Arr.Add('      <value> </value>');
     Arr.Add('      <text> </text>');
     Arr.Add('      <index>12</index>');
     Arr.Add('    </node>');
     Arr.Add('    <node>');
-    Arr.Add('      <value>0123456789</value>');
     Arr.Add('      <text>0123456789</text>');
     Arr.Add('      <index>13</index>');
     Arr.Add('    </node>');
     Arr.Add('    <node>');
-    Arr.Add('      <value> </value>');
     Arr.Add('      <text> </text>');
     Arr.Add('      <index>23</index>');
     Arr.Add('    </node>');
     Arr.Add('    <node>');
-    Arr.Add('      <value>anyIdentifier</value>');
     Arr.Add('      <text>anyIdentifier</text>');
     Arr.Add('      <index>24</index>');
     Arr.Add('    </node>');
@@ -915,12 +871,23 @@ begin
   CheckEquals(GetExpectedText, ReturnedText);
 end;
 
+{ TestSamples }
+
+procedure TestSamples.TestArithmeticExpressions;
+var
+  AE: IGrammar;
+begin
+  AE := TArithmeticExpression.Create;
+  ShowMessage(AE.ParseAndVisit('21+55').AsString);
+end;
+
 initialization
   RegisterTest('HSharp.PEG.Context', TestContext.Suite);
   RegisterTest('HSharp.PEG.Expression', TestExpression.Suite);
   RegisterTest('HSharp.PEG.Grammar', TestGrammar.Suite);
   RegisterTest('HSharp.PEG.Node', TestNode.Suite);
   RegisterTest('HSharp.PEG.Rule', TestRule.Suite);
+  RegisterTest('PEG samples', TestSamples.Suite);
 
 end.
 

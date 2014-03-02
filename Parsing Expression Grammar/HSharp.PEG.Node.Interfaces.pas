@@ -8,17 +8,28 @@ uses
   HSharp.Collections.Interfaces;
 
 type
+  INode = interface;
+
+  INodeVisitor = interface
+    ['{EF39DA2D-7849-4C72-92C9-915AEF6848C4}']
+    function Visit(const aNode: INode): TValue;
+  end;
+
+  IVisitableNode = interface
+    ['{1D7B2F86-CD22-4299-8F24-982B32150B99}']
+    function Accept(const aVisitor: INodeVisitor): TValue;
+  end;
+
   INode = interface
     ['{7F8983C7-D49A-4B8F-9696-B1EA19909452}']
     { property accessors }
-    function GetValue: TValue;
-    procedure SetValue(const aValue: TValue);
-    function GetText: string;
-    function GetIndex: Integer;
     function GetChildren: IList<INode>;
+    function GetIndex: Integer;
+    function GetName: string;
+    function GetText: string;
     function ToString(aLevel: Integer = 0): string;
     { properties }
-    property Value: TValue read GetValue write SetValue;
+    property Name: string read GetName;
     property Text: string read GetText;
     property Index: Integer read GetIndex;
     property Children: IList<INode> read GetChildren;

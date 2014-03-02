@@ -17,7 +17,7 @@ program Tests.PEG;
 uses
   DUnitTestRunner,
   TestHSharp_PEG in 'TestHSharp_PEG.pas',
-  Test.ExpressionGrammar in 'Test.ExpressionGrammar.pas';
+  Sample.ArithmeticExpression in 'Samples\Sample.ArithmeticExpression.pas';
 
 {$R *.RES}
 
