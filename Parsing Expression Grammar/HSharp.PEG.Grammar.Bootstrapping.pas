@@ -31,39 +31,43 @@ uses
   HSharp.Collections.Interfaces,
   HSharp.PEG.Expression,
   HSharp.PEG.Expression.Interfaces,
-  HSharp.PEG.Grammar,
+  HSharp.PEG.Grammar.Base,
   HSharp.PEG.Grammar.Interfaces,
   HSharp.PEG.Node.Interfaces,
   HSharp.PEG.Rule,
   HSharp.PEG.Rule.Interfaces;
 
 type
-  IBootstrappingGrammar = interface(IGrammar)
+  IBootstrappingGrammar = interface(IBaseGrammar)
     ['{D83E083A-9452-4C4F-8DFB-379CF81BFA1D}']
     function GetRules(const aGrammarText: string): IList<IRule>;
   end;
 
-  TBootstrappingGrammar = class(TGrammar, IBootstrappingGrammar)
+  TBootstrappingGrammar = class(TBaseGrammar, IBootstrappingGrammar)
+  strict private
+    FRulesMap: IDictionary<string, IRule>;
+  strict protected
+    function GetRuleByName(const aRuleName: string): IRule; //to solve the lazy reference problem
   public
 {??}function Visit_rules(const aNode: INode): TValue;
 {OK}function Visit_rule(const aNode: INode): TValue;
 {OK}function Visit_assignment(const aNode: INode): TValue;
 {OK}function Visit_literal(const aNode: INode): TValue;
-    function Visit_expression(const aNode: INode): TValue;
-    function Visit_or_term(const aNode: INode): TValue;
-    function Visit_ored(const aNode: INode): TValue;
-    function Visit_sequence(const aNode: INode): TValue;
-    function Visit_negative_lookahead_term(const aNode: INode): TValue;
-    function Visit_lookahead_term(const aNode: INode): TValue;
-    function Visit_term(const aNode: INode): TValue;
-    function Visit_quantified(const aNode: INode): TValue;
-    function Visit_atom(const aNode: INode): TValue;
-    function Visit_regex(const aNode: INode): TValue;
-    function Visit_parenthesized(const aNode: INode): TValue;
+{OK}function Visit_expression(const aNode: INode): TValue;
+{OK}function Visit_or_term(const aNode: INode): TValue;
+{OK}function Visit_ored(const aNode: INode): TValue;
+{OK}function Visit_sequence(const aNode: INode): TValue;
+{OK}function Visit_negative_lookahead_term(const aNode: INode): TValue;
+{OK}function Visit_lookahead_term(const aNode: INode): TValue;
+{OK}function Visit_term(const aNode: INode): TValue;
+{OK}function Visit_quantified(const aNode: INode): TValue;
+{OK}function Visit_atom(const aNode: INode): TValue;
+{OK}function Visit_regex(const aNode: INode): TValue;
+{OK}function Visit_parenthesized(const aNode: INode): TValue;
 {OK}function Visit_quantifier(const aNode: INode): TValue;
     function Visit_repetition(const aNode: INode): TValue;
-    function Visit_reference(const aNode: INode): TValue;
-{..}function Visit_identifier(const aNode: INode): TValue;
+{OK}function Visit_reference(const aNode: INode): TValue;
+{OK}function Visit_identifier(const aNode: INode): TValue;
 {OK}function Visit__(const aNode: INode): TValue;
 {OK}function Visit_comment(const aNode: INode): TValue;
   public
@@ -75,14 +79,14 @@ type
 implementation
 
 uses
-  Vcl.Dialogs, {TODO -oHelton -cRemove : Remove!}
-  System.RegularExpressions;
+  System.RegularExpressions,
+  System.SysUtils;
 
 { TBootstrappingGrammar }
 
 constructor TBootstrappingGrammar.Create;
 var
-  RulesArray: array of IRule;
+  RulesList: IList<IRule>;
   rules,
   rule,
   assignment,
@@ -246,9 +250,10 @@ var
        TRuleReferenceExpression.Create(_)
       ]
     );
-    //repetition = /{[0-9]+(\s*,\s*([0-9]+)?)?}/ _
+    //repetition = atom /{[0-9]+(\s*,\s*([0-9]+)?)?}/ _
     repetition.Expression := TSequenceExpression.Create(
-      [TRegexExpression.Create('{[0-9]+(\s*,\s*([0-9]+)?)?}'),
+      [TRuleReferenceExpression.Create(atom),
+       TRegexExpression.Create('{[0-9]+(\s*,\s*([0-9]+)?)?}'),
        TRuleReferenceExpression.Create(_)
       ]
     );
@@ -277,42 +282,46 @@ var
   end;
 
   procedure CreateRulesArray;
-
-    procedure AddRuleToArray(const aRule: IRule);
-    begin
-      SetLength(RulesArray, Length(RulesArray) + 1);
-      RulesArray[High(RulesArray)] := aRule;
-    end;
-
   begin
-    AddRuleToArray(rules);
-    AddRuleToArray(rule);
-    AddRuleToArray(assignment);
-    AddRuleToArray(literal);
-    AddRuleToArray(expression);
-    AddRuleToArray(or_term);
-    AddRuleToArray(ored);
-    AddRuleToArray(sequence);
-    AddRuleToArray(negative_lookahead_term);
-    AddRuleToArray(lookahead_term);
-    AddRuleToArray(term);
-    AddRuleToArray(quantified);
-    AddRuleToArray(atom);
-    AddRuleToArray(regex);
-    AddRuleToArray(parenthesized);
-    AddRuleToArray(quantifier);
-    AddRuleToArray(repetition);
-    AddRuleToArray(reference);
-    AddRuleToArray(identifier);
-    AddRuleToArray(_);
-    AddRuleToArray(comment);
+    RulesList.Add(rules);
+    RulesList.Add(rule);
+    RulesList.Add(assignment);
+    RulesList.Add(literal);
+    RulesList.Add(expression);
+    RulesList.Add(or_term);
+    RulesList.Add(ored);
+    RulesList.Add(sequence);
+    RulesList.Add(negative_lookahead_term);
+    RulesList.Add(lookahead_term);
+    RulesList.Add(term);
+    RulesList.Add(quantified);
+    RulesList.Add(atom);
+    RulesList.Add(regex);
+    RulesList.Add(parenthesized);
+    RulesList.Add(quantifier);
+    RulesList.Add(repetition);
+    RulesList.Add(reference);
+    RulesList.Add(identifier);
+    RulesList.Add(_);
+    RulesList.Add(comment);
   end;
 
 begin
+  RulesList := Collections.CreateList<IRule>;
   CreateRules;
   SetupRules;
   CreateRulesArray;
-  inherited Create(RulesArray);
+  inherited Create(RulesList);
+  FRulesMap := Collections.CreateDictionary<string, IRule>;
+end;
+
+function TBootstrappingGrammar.GetRuleByName(const aRuleName: string): IRule;
+begin
+  if not FRulesMap.TryGetValue(aRuleName, Result) then
+  begin
+    Result := TRule.Create(aRuleName);
+    FRulesMap.Add(aRuleName, Result);
+  end;
 end;
 
 function TBootstrappingGrammar.GetRules(const aGrammarText: string): IList<IRule>;
@@ -326,7 +335,7 @@ end;
 
 function TBootstrappingGrammar.Visit_atom(const aNode: INode): TValue;
 begin
-  Result := nil;
+  Result := aNode.Children[0].Value;
 end;
 
 function TBootstrappingGrammar.Visit_comment(const aNode: INode): TValue;
@@ -335,7 +344,7 @@ end;
 
 function TBootstrappingGrammar.Visit_expression(const aNode: INode): TValue;
 begin
-  Result := nil;
+  Result := aNode.Children[0].Value;
 end;
 
 function TBootstrappingGrammar.Visit_identifier(const aNode: INode): TValue;
@@ -344,38 +353,71 @@ begin
 end;
 
 function TBootstrappingGrammar.Visit_literal(const aNode: INode): TValue;
+
+  function ExtractLiteral(const aWrappedLiteral: string): string;
+  begin
+    Result := TRegEx.Match(aWrappedLiteral, '^"(?<literal>.*?)"$').
+      Groups['literal'].Value;
+  end;
+
 begin
-  Result := aNode.Children[0].Text;
+  Result := TValue.From<IExpression>(TLiteralExpression.Create(
+    ExtractLiteral(aNode.Children[0].Text)));
 end;
 
 function TBootstrappingGrammar.Visit_lookahead_term(const aNode: INode): TValue;
 begin
-  Result := nil;
+  Result := TLookaheadExpression.Create(aNode.Children[1].Value.AsType<IExpression>);
 end;
 
 function TBootstrappingGrammar.Visit_negative_lookahead_term(const aNode: INode): TValue;
 begin
-  Result := nil;
+  Result := TNegativeLookaheadExpression.Create(aNode.Children[1].Value.AsType<IExpression>);
 end;
 
 function TBootstrappingGrammar.Visit_ored(const aNode: INode): TValue;
+var
+  Expressions: array of IExpression;
+
+  procedure AddExpressionToArray(const aExpression: IExpression);
+  begin
+    SetLength(Expressions, Length(Expressions) + 1);
+    Expressions[High(Expressions)] := aExpression;
+  end;
+
+var
+  ExpressionNode: INode;
 begin
-  Result := nil;
+  AddExpressionToArray(aNode.Children[0].Value.AsType<IExpression>);
+  for ExpressionNode in aNode.Children[1].Children do
+    AddExpressionToArray(ExpressionNode.Value.AsType<IExpression>);
+  Result := TValue.From<IExpression>(TOneOfExpression.Create(Expressions));
+  SetLength(Expressions, 0);
 end;
 
 function TBootstrappingGrammar.Visit_or_term(const aNode: INode): TValue;
 begin
-  Result := nil;
+  Result := aNode.Children[2].Value;
 end;
 
 function TBootstrappingGrammar.Visit_parenthesized(const aNode: INode): TValue;
 begin
-  Result := nil;
+  Result := aNode.Children[2].Value;
 end;
 
 function TBootstrappingGrammar.Visit_quantified(const aNode: INode): TValue;
+var
+  Quantifier: string;
+  Atom: IExpression;
 begin
-  Result := nil;
+  Quantifier := aNode.Children[1].Children[0].Text;
+  Atom := aNode.Children[0].Value.AsType<IExpression>;
+  if Quantifier = '?' then
+    Result := TValue.From<IExpression>(TRepeatOptionalExpression.Create(Atom))
+  else if Quantifier = '*' then
+    Result := TValue.From<IExpression>(TRepeatZeroOrMoreExpression.Create(Atom))
+  else if Quantifier = '+' then
+    Result := TValue.From<IExpression>(TRepeatOneOrMoreExpression.Create(Atom));
 end;
 
 function TBootstrappingGrammar.Visit_quantifier(const aNode: INode): TValue;
@@ -385,12 +427,33 @@ end;
 
 function TBootstrappingGrammar.Visit_reference(const aNode: INode): TValue;
 begin
-  Result := nil;
+  Result := TRuleReferenceExpression.Create(GetRuleByName(aNode.Children[0].Value.AsString));
 end;
 
 function TBootstrappingGrammar.Visit_regex(const aNode: INode): TValue;
+
+  function ExtractRegexPattern(const aWrappedRegex: string): string;
+  begin
+    Result := TRegEx.Match(aWrappedRegex, '^/(?<pattern>.*?)/$').
+      Groups['pattern'].Value;
+  end;
+
+var
+  RegexOptions: TRegExOptions;
 begin
-  Result := nil;
+  RegexOptions := [];
+  if aNode.Children[1].Text.Contains('i') then
+    RegexOptions := RegexOptions + [TRegExOption.roIgnoreCase];
+  if aNode.Children[1].Text.Contains('m') then
+    RegexOptions := RegexOptions + [TRegExOption.roMultiLine];
+  if aNode.Children[1].Text.Contains('e') then
+    RegexOptions := RegexOptions + [TRegExOption.roExplicitCapture];
+  if aNode.Children[1].Text.Contains('s') then
+    RegexOptions := RegexOptions + [TRegExOption.roSingleLine];
+  if aNode.Children[1].Text.Contains('p') then
+    RegexOptions := RegexOptions + [TRegExOption.roIgnorePatternSpace];
+  Result := TRegexExpression.Create(ExtractRegexPattern(aNode.Children[0].Text),
+     RegexOptions);
 end;
 
 function TBootstrappingGrammar.Visit_repetition(const aNode: INode): TValue;
@@ -402,8 +465,8 @@ function TBootstrappingGrammar.Visit_rule(const aNode: INode): TValue;
 var
   Rule: IRule;
 begin
-  Rule := TRule.Create(aNode.Children[0].Value.AsString);
-//  Rule.Expression := aNode.Children[2].Value.AsType<IExpression>;
+  Rule := GetRuleByName(aNode.Children[0].Value.AsString);
+  Rule.Expression := aNode.Children[2].Value.AsType<IExpression>;
   Result := TValue.From<IRule>(Rule);
 end;
 
@@ -419,13 +482,28 @@ begin
 end;
 
 function TBootstrappingGrammar.Visit_sequence(const aNode: INode): TValue;
+var
+  Expressions: array of IExpression;
+
+  procedure AddExpressionToArray(const aExpression: IExpression);
+  begin
+    SetLength(Expressions, Length(Expressions) + 1);
+    Expressions[High(Expressions)] := aExpression;
+  end;
+
+var
+  ExpressionNode: INode;
 begin
-  Result := nil;
+  AddExpressionToArray(aNode.Children[0].Value.AsType<IExpression>);
+  for ExpressionNode in aNode.Children[1].Children do
+    AddExpressionToArray(ExpressionNode.Value.AsType<IExpression>);
+  Result := TValue.From<IExpression>(TSequenceExpression.Create(Expressions));
+  SetLength(Expressions, 0);
 end;
 
 function TBootstrappingGrammar.Visit_term(const aNode: INode): TValue;
 begin
-  Result := nil;
+  Result := aNode.Children[0].Value;
 end;
 
 function TBootstrappingGrammar.Visit__(const aNode: INode): TValue;

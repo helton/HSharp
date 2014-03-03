@@ -33,8 +33,8 @@ uses
   HSharp.PEG.Expression,
   HSharp.PEG.Expression.Interfaces,
   HSharp.PEG.Grammar,
-  HSharp.PEG.Grammar.Annotated,
   HSharp.PEG.Grammar.Attributes,
+  HSharp.PEG.Grammar.Base,
   HSharp.PEG.Grammar.Bootstrapping,
   HSharp.PEG.Grammar.Interfaces,
   HSharp.PEG.Node,
@@ -83,7 +83,6 @@ type
 
   TestGrammar = class(TTestCase)
   published
-    procedure Test;
     procedure TestBootstrappingGrammar;
     procedure TestBootstrappingGrammarGeneratedRules;
   end;
@@ -208,7 +207,7 @@ var
   Context: IContext;
 begin
   Context := TContext.Create('0123456789 original text');
-  Lookahead := TLookahedExpression.Create(TRegexExpression.Create('[0-9]+'));
+  Lookahead := TLookaheadExpression.Create(TRegexExpression.Create('[0-9]+'));
   CheckTrue(Lookahead.IsMatch(Context));
   Lookahead.Match(Context);
   CheckEquals('0123456789 original text', Context.Text,
@@ -453,7 +452,7 @@ begin
      TRepeatRangeExpression.Create(TLiteralExpression.Create('text that will be repeated'), 3, 8),
      TRepeatExactlyExpression.Create(TLiteralExpression.Create('text that will be repeated'), 7),
      TRepeatUpToExpression.Create(TLiteralExpression.Create('text that will be repeated'), 4),
-     TLookahedExpression.Create(TLiteralExpression.Create('lookahead')),
+     TLookaheadExpression.Create(TLiteralExpression.Create('lookahead')),
      TRegexExpression.Create('[a-z]+', [TRegExOption.roIgnoreCase]),
      TNegativeLookaheadExpression.Create(TLiteralExpression.Create('another_literal_text')),
      TRuleReferenceExpression.Create(InternalRule),
@@ -466,60 +465,27 @@ begin
      )
     ]
   );
-  CheckEquals('<OneOfRule> = "literal_text" | ' +
-                             '" " | ' +
-                             '/[0-9]+/p | ' +
-                             '" " | ' +
-                             '"text that will be repeated"* | ' +
-                             '"text that will be repeated"+ | ' +
-                             '"text that will be repeated"? | ' +
-                             '"text that will be repeated"{2,} | ' +
-                             '"text that will be repeated"{3,8} | ' +
-                             '"text that will be repeated"{7} | ' +
-                             '"text that will be repeated"{0,4} | ' +
-                             '&"lookahead" | ' +
-                             '/[a-z]+/i | ' +
-                             '!"another_literal_text" | ' +
-                             'internal_rule | '+
-                             '/[0-5]+/e | ' +
-                             '"literal_text" /[0-9]+/ /[a-z]+/i',
+  CheckEquals('OneOfRule = "literal_text" | ' +
+                           '" " | ' +
+                           '/[0-9]+/p | ' +
+                           '" " | ' +
+                           '"text that will be repeated"* | ' +
+                           '"text that will be repeated"+ | ' +
+                           '"text that will be repeated"? | ' +
+                           '"text that will be repeated"{2,} | ' +
+                           '"text that will be repeated"{3,8} | ' +
+                           '"text that will be repeated"{7} | ' +
+                           '"text that will be repeated"{0,4} | ' +
+                           '&"lookahead" | ' +
+                           '/[a-z]+/i | ' +
+                           '!"another_literal_text" | ' +
+                           'internal_rule | '+
+                           '/[0-5]+/e | ' +
+                           '"literal_text" /[0-9]+/ /[a-z]+/i',
               Rule.AsString, 'AsString of Rule should be showed correctly');
 end;
 
 { TestGrammar }
-
-procedure TestGrammar.Test;
-var
-  Grammar: IGrammar;
-  Rule_bold_text, Rule_open_parens, Rule_text, Rule_close_parens: IRule;
-  Expected: IArrayString;
-begin
-  { create rules }
-  Rule_bold_text    := TRule.Create('bold_text');
-  Rule_open_parens  := TRule.Create('open_parens');
-  Rule_text         := TRule.Create('text');
-  Rule_close_parens := TRule.Create('close_parens');
-
-  { setup rules }
-  Rule_bold_text.Expression    := TSequenceExpression.Create(
-    [TRuleReferenceExpression.Create(Rule_open_parens),
-     TRuleReferenceExpression.Create(Rule_text),
-     TRuleReferenceExpression.Create(Rule_close_parens)
-    ]
-  );
-  Rule_open_parens.Expression  := TLiteralExpression.Create('((');
-  Rule_text.Expression         := TRegexExpression.Create('[a-zA-Z]+');
-  Rule_close_parens.Expression := TLiteralExpression.Create('))');
-
-  { create grammar }
-  Grammar := TGrammar.Create([Rule_bold_text, Rule_open_parens, Rule_text, Rule_close_parens]);
-  Expected := TArrayString.Create;
-  Expected.Add('<bold_text> = open_parens text close_parens');
-  Expected.Add('<open_parens> = "(("');
-  Expected.Add('<text> = /[a-zA-Z]+/');
-  Expected.Add('<close_parens> = "))"');
-  CheckEquals(Expected.AsString, Grammar.AsString, 'AsString of Grammar is wrong');
-end;
 
 procedure TestGrammar.TestBootstrappingGrammar;
 
@@ -553,11 +519,800 @@ procedure TestGrammar.TestBootstrappingGrammar;
     Arr.Add('regex = /\/.*?[^\\]\// /[imesp]*/i? _');
     Arr.Add('parenthesized = "(" _ expression ")" _');
     Arr.Add('quantifier = /[*+?]/ _');
-    Arr.Add('repetition = /{[0-9]+(\s*,\s*([0-9]+)?)?}/ _');
+    Arr.Add('repetition = atom /{[0-9]+(\s*,\s*([0-9]+)?)?}/ _');
     Arr.Add('reference = identifier !assignment');
     Arr.Add('identifier = /[a-z_][a-z0-9_]*/i _');
     Arr.Add('_ = /\s+/? | comment');
     Arr.Add('comment = /#.*?(?:\r\n|$)/');
+    Result := Arr.AsString;
+  end;
+
+  function GetExpectedText: string;
+  var
+    Arr: IArrayString;
+  begin
+    Arr := TArrayString.Create;
+    Arr.Add('<Node called "rules" matching "rules = _ rule+\nrule = identifier ' +
+      'assignment expression\nassignment = "=" _\nliteral = /\".*?[^\\]\"/i ' +
+      '_\nexpression = ored | sequence | term\nor_term = "|" _ term\nored = ' +
+      'term or_term+\nsequence = term term+\nnegative_lookahead_term = "!" term ' +
+      '_\nlookahead_term = "&" term _\nterm = lookahead_term | ' +
+      'negative_lookahead_term | quantified | repetition | atom\nquantified = ' +
+      'atom quantifier\natom = reference | literal | regex | ' +
+      'parenthesized\nregex = /\/.*?[^\\]\// /[imesp]*/i? _\nparenthesized = "(' +
+      '" _ expression ")" _\nquantifier = /[*+?]/ _\nrepetition = atom /{[0-9]+(' +
+      '\s*,\s*([0-9]+)?)?}/ _\nreference = identifier !assignment\nidentifier = ' +
+      '/[a-z_][a-z0-9_]*/i _\n_ = /\s+/? | comment\ncomment = /#.*?(' +
+      '?:\r\n|$)/">');
+    Arr.Add('  <Node called "_" matching "">');
+    Arr.Add('      <Node matching "">');
+    Arr.Add('  <Node matching "rules = _ rule+\nrule = identifier assignment ' +
+      'expression\nassignment = "=" _\nliteral = /\".*?[^\\]\"/i _\nexpression =' +
+      ' ored | sequence | term\nor_term = "|" _ term\nored = term or_term+' +
+      '\nsequence = term term+\nnegative_lookahead_term = "!" term ' +
+      '_\nlookahead_term = "&" term _\nterm = lookahead_term | ' +
+      'negative_lookahead_term | quantified | repetition | atom\nquantified = ' +
+      'atom quantifier\natom = reference | literal | regex | ' +
+      'parenthesized\nregex = /\/.*?[^\\]\// /[imesp]*/i? _\nparenthesized = "(' +
+      '" _ expression ")" _\nquantifier = /[*+?]/ _\nrepetition = atom /{[0-9]+(' +
+      '\s*,\s*([0-9]+)?)?}/ _\nreference = identifier !assignment\nidentifier = ' +
+      '/[a-z_][a-z0-9_]*/i _\n_ = /\s+/? | comment\ncomment = /#.*?(' +
+      '?:\r\n|$)/">');
+    Arr.Add('      <Node called "rule" matching "rules = _ rule+\n">');
+    Arr.Add('          <Node called "identifier" matching "rules ">');
+    Arr.Add('              <RegexNode matching "rules">');
+    Arr.Add('              <Node called "_" matching " ">');
+    Arr.Add('                  <Node matching " ">');
+    Arr.Add('          <Node called "assignment" matching "= ">');
+    Arr.Add('              <Node matching "=">');
+    Arr.Add('              <Node called "_" matching " ">');
+    Arr.Add('                  <Node matching " ">');
+    Arr.Add('          <Node called "expression" matching "_ rule+\n">');
+    Arr.Add('              <Node called "sequence" matching "_ rule+\n">');
+    Arr.Add('                  <Node called "term" matching "_ ">');
+    Arr.Add('                      <Node called "atom" matching "_ ">');
+    Arr.Add('                          <Node called "reference" matching "_ ">');
+    Arr.Add('                              <Node called "identifier" matching "_ ">');
+    Arr.Add('                                  <RegexNode matching "_">');
+    Arr.Add('                                  <Node called "_" matching " ">');
+    Arr.Add('                                      <Node matching " ">');
+    Arr.Add('                              <Node matching "">');
+    Arr.Add('                  <Node matching "rule+\n">');
+    Arr.Add('                      <Node called "term" matching "rule+\n">');
+    Arr.Add('                          <Node called "quantified" matching "rule+\n">');
+    Arr.Add('                              <Node called "atom" matching "rule">');
+    Arr.Add('                                  <Node called "reference" matching "rule">');
+    Arr.Add('                                      <Node called "identifier" matching "rule">');
+    Arr.Add('                                          <RegexNode matching "rule">');
+    Arr.Add('                                          <Node called "_" matching "">');
+    Arr.Add('                                              <Node matching "">');
+    Arr.Add('                                      <Node matching "">');
+    Arr.Add('                              <Node called "quantifier" matching "+\n">');
+    Arr.Add('                                  <RegexNode matching "+">');
+    Arr.Add('                                  <Node called "_" matching "\n">');
+    Arr.Add('                                      <Node matching "\n">');
+    Arr.Add('      <Node called "rule" matching "rule = identifier assignment expression\n">');
+    Arr.Add('          <Node called "identifier" matching "rule ">');
+    Arr.Add('              <RegexNode matching "rule">');
+    Arr.Add('              <Node called "_" matching " ">');
+    Arr.Add('                  <Node matching " ">');
+    Arr.Add('          <Node called "assignment" matching "= ">');
+    Arr.Add('              <Node matching "=">');
+    Arr.Add('              <Node called "_" matching " ">');
+    Arr.Add('                  <Node matching " ">');
+    Arr.Add('          <Node called "expression" matching "identifier assignment expression\n">');
+    Arr.Add('              <Node called "sequence" matching "identifier assignment expression\n">');
+    Arr.Add('                  <Node called "term" matching "identifier ">');
+    Arr.Add('                      <Node called "atom" matching "identifier ">');
+    Arr.Add('                          <Node called "reference" matching "identifier ">');
+    Arr.Add('                              <Node called "identifier" matching "identifier ">');
+    Arr.Add('                                  <RegexNode matching "identifier">');
+    Arr.Add('                                  <Node called "_" matching " ">');
+    Arr.Add('                                      <Node matching " ">');
+    Arr.Add('                              <Node matching "">');
+    Arr.Add('                  <Node matching "assignment expression\n">');
+    Arr.Add('                      <Node called "term" matching "assignment ">');
+    Arr.Add('                          <Node called "atom" matching "assignment ">');
+    Arr.Add('                              <Node called "reference" matching "assignment ">');
+    Arr.Add('                                  <Node called "identifier" matching "assignment ">');
+    Arr.Add('                                      <RegexNode matching "assignment">');
+    Arr.Add('                                      <Node called "_" matching " ">');
+    Arr.Add('                                          <Node matching " ">');
+    Arr.Add('                                  <Node matching "">');
+    Arr.Add('                      <Node called "term" matching "expression\n">');
+    Arr.Add('                          <Node called "atom" matching "expression\n">');
+    Arr.Add('                              <Node called "reference" matching "expression\n">');
+    Arr.Add('                                  <Node called "identifier" matching "expression\n">');
+    Arr.Add('                                      <RegexNode matching "expression">');
+    Arr.Add('                                      <Node called "_" matching "\n">');
+    Arr.Add('                                          <Node matching "\n">');
+    Arr.Add('                                  <Node matching "">');
+    Arr.Add('      <Node called "rule" matching "assignment = "=" _\n">');
+    Arr.Add('          <Node called "identifier" matching "assignment ">');
+    Arr.Add('              <RegexNode matching "assignment">');
+    Arr.Add('              <Node called "_" matching " ">');
+    Arr.Add('                  <Node matching " ">');
+    Arr.Add('          <Node called "assignment" matching "= ">');
+    Arr.Add('              <Node matching "=">');
+    Arr.Add('              <Node called "_" matching " ">');
+    Arr.Add('                  <Node matching " ">');
+    Arr.Add('          <Node called "expression" matching ""=" _\n">');
+    Arr.Add('              <Node called "sequence" matching ""=" _\n">');
+    Arr.Add('                  <Node called "term" matching ""=" ">');
+    Arr.Add('                      <Node called "atom" matching ""=" ">');
+    Arr.Add('                          <Node called "literal" matching ""=" ">');
+    Arr.Add('                              <RegexNode matching ""="">');
+    Arr.Add('                              <Node called "_" matching " ">');
+    Arr.Add('                                  <Node matching " ">');
+    Arr.Add('                  <Node matching "_\n">');
+    Arr.Add('                      <Node called "term" matching "_\n">');
+    Arr.Add('                          <Node called "atom" matching "_\n">');
+    Arr.Add('                              <Node called "reference" matching "_\n">');
+    Arr.Add('                                  <Node called "identifier" matching "_\n">');
+    Arr.Add('                                      <RegexNode matching "_">');
+    Arr.Add('                                      <Node called "_" matching "\n">');
+    Arr.Add('                                          <Node matching "\n">');
+    Arr.Add('                                  <Node matching "">');
+    Arr.Add('      <Node called "rule" matching "literal = /\".*?[^\\]\"/i _\n">');
+    Arr.Add('          <Node called "identifier" matching "literal ">');
+    Arr.Add('              <RegexNode matching "literal">');
+    Arr.Add('              <Node called "_" matching " ">');
+    Arr.Add('                  <Node matching " ">');
+    Arr.Add('          <Node called "assignment" matching "= ">');
+    Arr.Add('              <Node matching "=">');
+    Arr.Add('              <Node called "_" matching " ">');
+    Arr.Add('                  <Node matching " ">');
+    Arr.Add('          <Node called "expression" matching "/\".*?[^\\]\"/i _\n">');
+    Arr.Add('              <Node called "sequence" matching "/\".*?[^\\]\"/i _\n">');
+    Arr.Add('                  <Node called "term" matching "/\".*?[^\\]\"/i ">');
+    Arr.Add('                      <Node called "atom" matching "/\".*?[^\\]\"/i ">');
+    Arr.Add('                          <Node called "regex" matching "/\".*?[^\\]\"/i ">');
+    Arr.Add('                              <RegexNode matching "/\".*?[^\\]\"/">');
+    Arr.Add('                              <Node matching "i">');
+    Arr.Add('                              <Node called "_" matching " ">');
+    Arr.Add('                                  <Node matching " ">');
+    Arr.Add('                  <Node matching "_\n">');
+    Arr.Add('                      <Node called "term" matching "_\n">');
+    Arr.Add('                          <Node called "atom" matching "_\n">');
+    Arr.Add('                              <Node called "reference" matching "_\n">');
+    Arr.Add('                                  <Node called "identifier" matching "_\n">');
+    Arr.Add('                                      <RegexNode matching "_">');
+    Arr.Add('                                      <Node called "_" matching "\n">');
+    Arr.Add('                                          <Node matching "\n">');
+    Arr.Add('                                  <Node matching "">');
+    Arr.Add('      <Node called "rule" matching "expression = ored | sequence | term\n">');
+    Arr.Add('          <Node called "identifier" matching "expression ">');
+    Arr.Add('              <RegexNode matching "expression">');
+    Arr.Add('              <Node called "_" matching " ">');
+    Arr.Add('                  <Node matching " ">');
+    Arr.Add('          <Node called "assignment" matching "= ">');
+    Arr.Add('              <Node matching "=">');
+    Arr.Add('              <Node called "_" matching " ">');
+    Arr.Add('                  <Node matching " ">');
+    Arr.Add('          <Node called "expression" matching "ored | sequence | term\n">');
+    Arr.Add('              <Node called "ored" matching "ored | sequence | term\n">');
+    Arr.Add('                  <Node called "term" matching "ored ">');
+    Arr.Add('                      <Node called "atom" matching "ored ">');
+    Arr.Add('                          <Node called "reference" matching "ored ">');
+    Arr.Add('                              <Node called "identifier" matching "ored ">');
+    Arr.Add('                                  <RegexNode matching "ored">');
+    Arr.Add('                                  <Node called "_" matching " ">');
+    Arr.Add('                                      <Node matching " ">');
+    Arr.Add('                              <Node matching "">');
+    Arr.Add('                  <Node matching "| sequence | term\n">');
+    Arr.Add('                      <Node called "or_term" matching "| sequence ">');
+    Arr.Add('                          <Node matching "|">');
+    Arr.Add('                          <Node called "_" matching " ">');
+    Arr.Add('                              <Node matching " ">');
+    Arr.Add('                          <Node called "term" matching "sequence ">');
+    Arr.Add('                              <Node called "atom" matching "sequence ">');
+    Arr.Add('                                  <Node called "reference" matching "sequence ">');
+    Arr.Add('                                      <Node called "identifier" matching "sequence ">');
+    Arr.Add('                                          <RegexNode matching "sequence">');
+    Arr.Add('                                          <Node called "_" matching " ">');
+    Arr.Add('                                              <Node matching " ">');
+    Arr.Add('                                      <Node matching "">');
+    Arr.Add('                      <Node called "or_term" matching "| term\n">');
+    Arr.Add('                          <Node matching "|">');
+    Arr.Add('                          <Node called "_" matching " ">');
+    Arr.Add('                              <Node matching " ">');
+    Arr.Add('                          <Node called "term" matching "term\n">');
+    Arr.Add('                              <Node called "atom" matching "term\n">');
+    Arr.Add('                                  <Node called "reference" matching "term\n">');
+    Arr.Add('                                      <Node called "identifier" matching "term\n">');
+    Arr.Add('                                          <RegexNode matching "term">');
+    Arr.Add('                                          <Node called "_" matching "\n">');
+    Arr.Add('                                              <Node matching "\n">');
+    Arr.Add('                                      <Node matching "">');
+    Arr.Add('      <Node called "rule" matching "or_term = "|" _ term\n">');
+    Arr.Add('          <Node called "identifier" matching "or_term ">');
+    Arr.Add('              <RegexNode matching "or_term">');
+    Arr.Add('              <Node called "_" matching " ">');
+    Arr.Add('                  <Node matching " ">');
+    Arr.Add('          <Node called "assignment" matching "= ">');
+    Arr.Add('              <Node matching "=">');
+    Arr.Add('              <Node called "_" matching " ">');
+    Arr.Add('                  <Node matching " ">');
+    Arr.Add('          <Node called "expression" matching ""|" _ term\n">');
+    Arr.Add('              <Node called "sequence" matching ""|" _ term\n">');
+    Arr.Add('                  <Node called "term" matching ""|" ">');
+    Arr.Add('                      <Node called "atom" matching ""|" ">');
+    Arr.Add('                          <Node called "literal" matching ""|" ">');
+    Arr.Add('                              <RegexNode matching ""|"">');
+    Arr.Add('                              <Node called "_" matching " ">');
+    Arr.Add('                                  <Node matching " ">');
+    Arr.Add('                  <Node matching "_ term\n">');
+    Arr.Add('                      <Node called "term" matching "_ ">');
+    Arr.Add('                          <Node called "atom" matching "_ ">');
+    Arr.Add('                              <Node called "reference" matching "_ ">');
+    Arr.Add('                                  <Node called "identifier" matching "_ ">');
+    Arr.Add('                                      <RegexNode matching "_">');
+    Arr.Add('                                      <Node called "_" matching " ">');
+    Arr.Add('                                          <Node matching " ">');
+    Arr.Add('                                  <Node matching "">');
+    Arr.Add('                      <Node called "term" matching "term\n">');
+    Arr.Add('                          <Node called "atom" matching "term\n">');
+    Arr.Add('                              <Node called "reference" matching "term\n">');
+    Arr.Add('                                  <Node called "identifier" matching "term\n">');
+    Arr.Add('                                      <RegexNode matching "term">');
+    Arr.Add('                                      <Node called "_" matching "\n">');
+    Arr.Add('                                          <Node matching "\n">');
+    Arr.Add('                                  <Node matching "">');
+    Arr.Add('      <Node called "rule" matching "ored = term or_term+\n">');
+    Arr.Add('          <Node called "identifier" matching "ored ">');
+    Arr.Add('              <RegexNode matching "ored">');
+    Arr.Add('              <Node called "_" matching " ">');
+    Arr.Add('                  <Node matching " ">');
+    Arr.Add('          <Node called "assignment" matching "= ">');
+    Arr.Add('              <Node matching "=">');
+    Arr.Add('              <Node called "_" matching " ">');
+    Arr.Add('                  <Node matching " ">');
+    Arr.Add('          <Node called "expression" matching "term or_term+\n">');
+    Arr.Add('              <Node called "sequence" matching "term or_term+\n">');
+    Arr.Add('                  <Node called "term" matching "term ">');
+    Arr.Add('                      <Node called "atom" matching "term ">');
+    Arr.Add('                          <Node called "reference" matching "term ">');
+    Arr.Add('                              <Node called "identifier" matching "term ">');
+    Arr.Add('                                  <RegexNode matching "term">');
+    Arr.Add('                                  <Node called "_" matching " ">');
+    Arr.Add('                                      <Node matching " ">');
+    Arr.Add('                              <Node matching "">');
+    Arr.Add('                  <Node matching "or_term+\n">');
+    Arr.Add('                      <Node called "term" matching "or_term+\n">');
+    Arr.Add('                          <Node called "quantified" matching "or_term+\n">');
+    Arr.Add('                              <Node called "atom" matching "or_term">');
+    Arr.Add('                                  <Node called "reference" matching "or_term">');
+    Arr.Add('                                      <Node called "identifier" matching "or_term">');
+    Arr.Add('                                          <RegexNode matching "or_term">');
+    Arr.Add('                                          <Node called "_" matching "">');
+    Arr.Add('                                              <Node matching "">');
+    Arr.Add('                                      <Node matching "">');
+    Arr.Add('                              <Node called "quantifier" matching "+\n">');
+    Arr.Add('                                  <RegexNode matching "+">');
+    Arr.Add('                                  <Node called "_" matching "\n">');
+    Arr.Add('                                      <Node matching "\n">');
+    Arr.Add('      <Node called "rule" matching "sequence = term term+\n">');
+    Arr.Add('          <Node called "identifier" matching "sequence ">');
+    Arr.Add('              <RegexNode matching "sequence">');
+    Arr.Add('              <Node called "_" matching " ">');
+    Arr.Add('                  <Node matching " ">');
+    Arr.Add('          <Node called "assignment" matching "= ">');
+    Arr.Add('              <Node matching "=">');
+    Arr.Add('              <Node called "_" matching " ">');
+    Arr.Add('                  <Node matching " ">');
+    Arr.Add('          <Node called "expression" matching "term term+\n">');
+    Arr.Add('              <Node called "sequence" matching "term term+\n">');
+    Arr.Add('                  <Node called "term" matching "term ">');
+    Arr.Add('                      <Node called "atom" matching "term ">');
+    Arr.Add('                          <Node called "reference" matching "term ">');
+    Arr.Add('                              <Node called "identifier" matching "term ">');
+    Arr.Add('                                  <RegexNode matching "term">');
+    Arr.Add('                                  <Node called "_" matching " ">');
+    Arr.Add('                                      <Node matching " ">');
+    Arr.Add('                              <Node matching "">');
+    Arr.Add('                  <Node matching "term+\n">');
+    Arr.Add('                      <Node called "term" matching "term+\n">');
+    Arr.Add('                          <Node called "quantified" matching "term+\n">');
+    Arr.Add('                              <Node called "atom" matching "term">');
+    Arr.Add('                                  <Node called "reference" matching "term">');
+    Arr.Add('                                      <Node called "identifier" matching "term">');
+    Arr.Add('                                          <RegexNode matching "term">');
+    Arr.Add('                                          <Node called "_" matching "">');
+    Arr.Add('                                              <Node matching "">');
+    Arr.Add('                                      <Node matching "">');
+    Arr.Add('                              <Node called "quantifier" matching "+\n">');
+    Arr.Add('                                  <RegexNode matching "+">');
+    Arr.Add('                                  <Node called "_" matching "\n">');
+    Arr.Add('                                      <Node matching "\n">');
+    Arr.Add('      <Node called "rule" matching "negative_lookahead_term = "!" term _\n">');
+    Arr.Add('          <Node called "identifier" matching "negative_lookahead_term ">');
+    Arr.Add('              <RegexNode matching "negative_lookahead_term">');
+    Arr.Add('              <Node called "_" matching " ">');
+    Arr.Add('                  <Node matching " ">');
+    Arr.Add('          <Node called "assignment" matching "= ">');
+    Arr.Add('              <Node matching "=">');
+    Arr.Add('              <Node called "_" matching " ">');
+    Arr.Add('                  <Node matching " ">');
+    Arr.Add('          <Node called "expression" matching ""!" term _\n">');
+    Arr.Add('              <Node called "sequence" matching ""!" term _\n">');
+    Arr.Add('                  <Node called "term" matching ""!" ">');
+    Arr.Add('                      <Node called "atom" matching ""!" ">');
+    Arr.Add('                          <Node called "literal" matching ""!" ">');
+    Arr.Add('                              <RegexNode matching ""!"">');
+    Arr.Add('                              <Node called "_" matching " ">');
+    Arr.Add('                                  <Node matching " ">');
+    Arr.Add('                  <Node matching "term _\n">');
+    Arr.Add('                      <Node called "term" matching "term ">');
+    Arr.Add('                          <Node called "atom" matching "term ">');
+    Arr.Add('                              <Node called "reference" matching "term ">');
+    Arr.Add('                                  <Node called "identifier" matching "term ">');
+    Arr.Add('                                      <RegexNode matching "term">');
+    Arr.Add('                                      <Node called "_" matching " ">');
+    Arr.Add('                                          <Node matching " ">');
+    Arr.Add('                                  <Node matching "">');
+    Arr.Add('                      <Node called "term" matching "_\n">');
+    Arr.Add('                          <Node called "atom" matching "_\n">');
+    Arr.Add('                              <Node called "reference" matching "_\n">');
+    Arr.Add('                                  <Node called "identifier" matching "_\n">');
+    Arr.Add('                                      <RegexNode matching "_">');
+    Arr.Add('                                      <Node called "_" matching "\n">');
+    Arr.Add('                                          <Node matching "\n">');
+    Arr.Add('                                  <Node matching "">');
+    Arr.Add('      <Node called "rule" matching "lookahead_term = "&" term _\n">');
+    Arr.Add('          <Node called "identifier" matching "lookahead_term ">');
+    Arr.Add('              <RegexNode matching "lookahead_term">');
+    Arr.Add('              <Node called "_" matching " ">');
+    Arr.Add('                  <Node matching " ">');
+    Arr.Add('          <Node called "assignment" matching "= ">');
+    Arr.Add('              <Node matching "=">');
+    Arr.Add('              <Node called "_" matching " ">');
+    Arr.Add('                  <Node matching " ">');
+    Arr.Add('          <Node called "expression" matching ""&" term _\n">');
+    Arr.Add('              <Node called "sequence" matching ""&" term _\n">');
+    Arr.Add('                  <Node called "term" matching ""&" ">');
+    Arr.Add('                      <Node called "atom" matching ""&" ">');
+    Arr.Add('                          <Node called "literal" matching ""&" ">');
+    Arr.Add('                              <RegexNode matching ""&"">');
+    Arr.Add('                              <Node called "_" matching " ">');
+    Arr.Add('                                  <Node matching " ">');
+    Arr.Add('                  <Node matching "term _\n">');
+    Arr.Add('                      <Node called "term" matching "term ">');
+    Arr.Add('                          <Node called "atom" matching "term ">');
+    Arr.Add('                              <Node called "reference" matching "term ">');
+    Arr.Add('                                  <Node called "identifier" matching "term ">');
+    Arr.Add('                                      <RegexNode matching "term">');
+    Arr.Add('                                      <Node called "_" matching " ">');
+    Arr.Add('                                          <Node matching " ">');
+    Arr.Add('                                  <Node matching "">');
+    Arr.Add('                      <Node called "term" matching "_\n">');
+    Arr.Add('                          <Node called "atom" matching "_\n">');
+    Arr.Add('                              <Node called "reference" matching "_\n">');
+    Arr.Add('                                  <Node called "identifier" matching "_\n">');
+    Arr.Add('                                      <RegexNode matching "_">');
+    Arr.Add('                                      <Node called "_" matching "\n">');
+    Arr.Add('                                          <Node matching "\n">');
+    Arr.Add('                                  <Node matching "">');
+    Arr.Add('      <Node called "rule" matching "term = lookahead_term | ' +
+      'negative_lookahead_term | quantified | repetition | atom\n">');
+    Arr.Add('          <Node called "identifier" matching "term ">');
+    Arr.Add('              <RegexNode matching "term">');
+    Arr.Add('              <Node called "_" matching " ">');
+    Arr.Add('                  <Node matching " ">');
+    Arr.Add('          <Node called "assignment" matching "= ">');
+    Arr.Add('              <Node matching "=">');
+    Arr.Add('              <Node called "_" matching " ">');
+    Arr.Add('                  <Node matching " ">');
+    Arr.Add('          <Node called "expression" matching "lookahead_term | ' +
+      'negative_lookahead_term | quantified | repetition | atom\n">');
+    Arr.Add('              <Node called "ored" matching "lookahead_term | ' +
+      'negative_lookahead_term | quantified | repetition | atom\n">');
+    Arr.Add('                  <Node called "term" matching "lookahead_term ">');
+    Arr.Add('                      <Node called "atom" matching "lookahead_term ">');
+    Arr.Add('                          <Node called "reference" matching "lookahead_term ">');
+    Arr.Add('                              <Node called "identifier" matching "lookahead_term ">');
+    Arr.Add('                                  <RegexNode matching "lookahead_term">');
+    Arr.Add('                                  <Node called "_" matching " ">');
+    Arr.Add('                                      <Node matching " ">');
+    Arr.Add('                              <Node matching "">');
+    Arr.Add('                  <Node matching "| negative_lookahead_term | quantified | repetition | atom\n">');
+    Arr.Add('                      <Node called "or_term" matching "| negative_lookahead_term ">');
+    Arr.Add('                          <Node matching "|">');
+    Arr.Add('                          <Node called "_" matching " ">');
+    Arr.Add('                              <Node matching " ">');
+    Arr.Add('                          <Node called "term" matching "negative_lookahead_term ">');
+    Arr.Add('                              <Node called "atom" matching "negative_lookahead_term ">');
+    Arr.Add('                                  <Node called "reference" matching "negative_lookahead_term ">');
+    Arr.Add('                                      <Node called "identifier" matching "negative_lookahead_term ">');
+    Arr.Add('                                          <RegexNode matching "negative_lookahead_term">');
+    Arr.Add('                                          <Node called "_" matching " ">');
+    Arr.Add('                                              <Node matching " ">');
+    Arr.Add('                                      <Node matching "">');
+    Arr.Add('                      <Node called "or_term" matching "| quantified ">');
+    Arr.Add('                          <Node matching "|">');
+    Arr.Add('                          <Node called "_" matching " ">');
+    Arr.Add('                              <Node matching " ">');
+    Arr.Add('                          <Node called "term" matching "quantified ">');
+    Arr.Add('                              <Node called "atom" matching "quantified ">');
+    Arr.Add('                                  <Node called "reference" matching "quantified ">');
+    Arr.Add('                                      <Node called "identifier" matching "quantified ">');
+    Arr.Add('                                          <RegexNode matching "quantified">');
+    Arr.Add('                                          <Node called "_" matching " ">');
+    Arr.Add('                                              <Node matching " ">');
+    Arr.Add('                                      <Node matching "">');
+    Arr.Add('                      <Node called "or_term" matching "| repetition ">');
+    Arr.Add('                          <Node matching "|">');
+    Arr.Add('                          <Node called "_" matching " ">');
+    Arr.Add('                              <Node matching " ">');
+    Arr.Add('                          <Node called "term" matching "repetition ">');
+    Arr.Add('                              <Node called "atom" matching "repetition ">');
+    Arr.Add('                                  <Node called "reference" matching "repetition ">');
+    Arr.Add('                                      <Node called "identifier" matching "repetition ">');
+    Arr.Add('                                          <RegexNode matching "repetition">');
+    Arr.Add('                                          <Node called "_" matching " ">');
+    Arr.Add('                                              <Node matching " ">');
+    Arr.Add('                                      <Node matching "">');
+    Arr.Add('                      <Node called "or_term" matching "| atom\n">');
+    Arr.Add('                          <Node matching "|">');
+    Arr.Add('                          <Node called "_" matching " ">');
+    Arr.Add('                              <Node matching " ">');
+    Arr.Add('                          <Node called "term" matching "atom\n">');
+    Arr.Add('                              <Node called "atom" matching "atom\n">');
+    Arr.Add('                                  <Node called "reference" matching "atom\n">');
+    Arr.Add('                                      <Node called "identifier" matching "atom\n">');
+    Arr.Add('                                          <RegexNode matching "atom">');
+    Arr.Add('                                          <Node called "_" matching "\n">');
+    Arr.Add('                                              <Node matching "\n">');
+    Arr.Add('                                      <Node matching "">');
+    Arr.Add('      <Node called "rule" matching "quantified = atom quantifier\n">');
+    Arr.Add('          <Node called "identifier" matching "quantified ">');
+    Arr.Add('              <RegexNode matching "quantified">');
+    Arr.Add('              <Node called "_" matching " ">');
+    Arr.Add('                  <Node matching " ">');
+    Arr.Add('          <Node called "assignment" matching "= ">');
+    Arr.Add('              <Node matching "=">');
+    Arr.Add('              <Node called "_" matching " ">');
+    Arr.Add('                  <Node matching " ">');
+    Arr.Add('          <Node called "expression" matching "atom quantifier\n">');
+    Arr.Add('              <Node called "sequence" matching "atom quantifier\n">');
+    Arr.Add('                  <Node called "term" matching "atom ">');
+    Arr.Add('                      <Node called "atom" matching "atom ">');
+    Arr.Add('                          <Node called "reference" matching "atom ">');
+    Arr.Add('                              <Node called "identifier" matching "atom ">');
+    Arr.Add('                                  <RegexNode matching "atom">');
+    Arr.Add('                                  <Node called "_" matching " ">');
+    Arr.Add('                                      <Node matching " ">');
+    Arr.Add('                              <Node matching "">');
+    Arr.Add('                  <Node matching "quantifier\n">');
+    Arr.Add('                      <Node called "term" matching "quantifier\n">');
+    Arr.Add('                          <Node called "atom" matching "quantifier\n">');
+    Arr.Add('                              <Node called "reference" matching "quantifier\n">');
+    Arr.Add('                                  <Node called "identifier" matching "quantifier\n">');
+    Arr.Add('                                      <RegexNode matching "quantifier">');
+    Arr.Add('                                      <Node called "_" matching "\n">');
+    Arr.Add('                                          <Node matching "\n">');
+    Arr.Add('                                  <Node matching "">');
+    Arr.Add('      <Node called "rule" matching "atom = reference | literal | regex | parenthesized\n">');
+    Arr.Add('          <Node called "identifier" matching "atom ">');
+    Arr.Add('              <RegexNode matching "atom">');
+    Arr.Add('              <Node called "_" matching " ">');
+    Arr.Add('                  <Node matching " ">');
+    Arr.Add('          <Node called "assignment" matching "= ">');
+    Arr.Add('              <Node matching "=">');
+    Arr.Add('              <Node called "_" matching " ">');
+    Arr.Add('                  <Node matching " ">');
+    Arr.Add('          <Node called "expression" matching "reference | literal ' +
+      '| regex | parenthesized\n">');
+    Arr.Add('              <Node called "ored" matching "reference | literal | ' +
+      'regex | parenthesized\n">');
+    Arr.Add('                  <Node called "term" matching "reference ">');
+    Arr.Add('                      <Node called "atom" matching "reference ">');
+    Arr.Add('                          <Node called "reference" matching "reference ">');
+    Arr.Add('                              <Node called "identifier" matching "reference ">');
+    Arr.Add('                                  <RegexNode matching "reference">');
+    Arr.Add('                                  <Node called "_" matching " ">');
+    Arr.Add('                                      <Node matching " ">');
+    Arr.Add('                              <Node matching "">');
+    Arr.Add('                  <Node matching "| literal | regex | parenthesized\n">');
+    Arr.Add('                      <Node called "or_term" matching "| literal ">');
+    Arr.Add('                          <Node matching "|">');
+    Arr.Add('                          <Node called "_" matching " ">');
+    Arr.Add('                              <Node matching " ">');
+    Arr.Add('                          <Node called "term" matching "literal ">');
+    Arr.Add('                              <Node called "atom" matching "literal ">');
+    Arr.Add('                                  <Node called "reference" matching "literal ">');
+    Arr.Add('                                      <Node called "identifier" matching "literal ">');
+    Arr.Add('                                          <RegexNode matching "literal">');
+    Arr.Add('                                          <Node called "_" matching " ">');
+    Arr.Add('                                              <Node matching " ">');
+    Arr.Add('                                      <Node matching "">');
+    Arr.Add('                      <Node called "or_term" matching "| regex ">');
+    Arr.Add('                          <Node matching "|">');
+    Arr.Add('                          <Node called "_" matching " ">');
+    Arr.Add('                              <Node matching " ">');
+    Arr.Add('                          <Node called "term" matching "regex ">');
+    Arr.Add('                              <Node called "atom" matching "regex ">');
+    Arr.Add('                                  <Node called "reference" matching "regex ">');
+    Arr.Add('                                      <Node called "identifier" matching "regex ">');
+    Arr.Add('                                          <RegexNode matching "regex">');
+    Arr.Add('                                          <Node called "_" matching " ">');
+    Arr.Add('                                              <Node matching " ">');
+    Arr.Add('                                      <Node matching "">');
+    Arr.Add('                      <Node called "or_term" matching "| parenthesized\n">');
+    Arr.Add('                          <Node matching "|">');
+    Arr.Add('                          <Node called "_" matching " ">');
+    Arr.Add('                              <Node matching " ">');
+    Arr.Add('                          <Node called "term" matching "parenthesized\n">');
+    Arr.Add('                              <Node called "atom" matching "parenthesized\n">');
+    Arr.Add('                                  <Node called "reference" matching "parenthesized\n">');
+    Arr.Add('                                      <Node called "identifier" matching "parenthesized\n">');
+    Arr.Add('                                          <RegexNode matching "parenthesized">');
+    Arr.Add('                                          <Node called "_" matching "\n">');
+    Arr.Add('                                              <Node matching "\n">');
+    Arr.Add('                                      <Node matching "">');
+    Arr.Add('      <Node called "rule" matching "regex = /\/.*?[^\\]\// /[imesp]*/i? _\n">');
+    Arr.Add('          <Node called "identifier" matching "regex ">');
+    Arr.Add('              <RegexNode matching "regex">');
+    Arr.Add('              <Node called "_" matching " ">');
+    Arr.Add('                  <Node matching " ">');
+    Arr.Add('          <Node called "assignment" matching "= ">');
+    Arr.Add('              <Node matching "=">');
+    Arr.Add('              <Node called "_" matching " ">');
+    Arr.Add('                  <Node matching " ">');
+    Arr.Add('          <Node called "expression" matching "/\/.*?[^\\]\// /[imesp]*/i? _\n">');
+    Arr.Add('              <Node called "sequence" matching "/\/.*?[^\\]\// /[imesp]*/i? _\n">');
+    Arr.Add('                  <Node called "term" matching "/\/.*?[^\\]\// ">');
+    Arr.Add('                      <Node called "atom" matching "/\/.*?[^\\]\// ">');
+    Arr.Add('                          <Node called "regex" matching "/\/.*?[^\\]\// ">');
+    Arr.Add('                              <RegexNode matching "/\/.*?[^\\]\//">');
+    Arr.Add('                              <Node matching "">');
+    Arr.Add('                              <Node called "_" matching " ">');
+    Arr.Add('                                  <Node matching " ">');
+    Arr.Add('                  <Node matching "/[imesp]*/i? _\n">');
+    Arr.Add('                      <Node called "term" matching "/[imesp]*/i? ">');
+    Arr.Add('                          <Node called "quantified" matching "/[imesp]*/i? ">');
+    Arr.Add('                              <Node called "atom" matching "/[imesp]*/i">');
+    Arr.Add('                                  <Node called "regex" matching "/[imesp]*/i">');
+    Arr.Add('                                      <RegexNode matching "/[imesp]*/">');
+    Arr.Add('                                      <Node matching "i">');
+    Arr.Add('                                      <Node called "_" matching "">');
+    Arr.Add('                                          <Node matching "">');
+    Arr.Add('                              <Node called "quantifier" matching "? ">');
+    Arr.Add('                                  <RegexNode matching "?">');
+    Arr.Add('                                  <Node called "_" matching " ">');
+    Arr.Add('                                      <Node matching " ">');
+    Arr.Add('                      <Node called "term" matching "_\n">');
+    Arr.Add('                          <Node called "atom" matching "_\n">');
+    Arr.Add('                              <Node called "reference" matching "_\n">');
+    Arr.Add('                                  <Node called "identifier" matching "_\n">');
+    Arr.Add('                                      <RegexNode matching "_">');
+    Arr.Add('                                      <Node called "_" matching "\n">');
+    Arr.Add('                                          <Node matching "\n">');
+    Arr.Add('                                  <Node matching "">');
+    Arr.Add('      <Node called "rule" matching "parenthesized = "(" _ expression ")" _\n">');
+    Arr.Add('          <Node called "identifier" matching "parenthesized ">');
+    Arr.Add('              <RegexNode matching "parenthesized">');
+    Arr.Add('              <Node called "_" matching " ">');
+    Arr.Add('                  <Node matching " ">');
+    Arr.Add('          <Node called "assignment" matching "= ">');
+    Arr.Add('              <Node matching "=">');
+    Arr.Add('              <Node called "_" matching " ">');
+    Arr.Add('                  <Node matching " ">');
+    Arr.Add('          <Node called "expression" matching ""(" _ expression ")" _\n">');
+    Arr.Add('              <Node called "sequence" matching ""(" _ expression ")" _\n">');
+    Arr.Add('                  <Node called "term" matching ""(" ">');
+    Arr.Add('                      <Node called "atom" matching ""(" ">');
+    Arr.Add('                          <Node called "literal" matching ""(" ">');
+    Arr.Add('                              <RegexNode matching ""("">');
+    Arr.Add('                              <Node called "_" matching " ">');
+    Arr.Add('                                  <Node matching " ">');
+    Arr.Add('                  <Node matching "_ expression ")" _\n">');
+    Arr.Add('                      <Node called "term" matching "_ ">');
+    Arr.Add('                          <Node called "atom" matching "_ ">');
+    Arr.Add('                              <Node called "reference" matching "_ ">');
+    Arr.Add('                                  <Node called "identifier" matching "_ ">');
+    Arr.Add('                                      <RegexNode matching "_">');
+    Arr.Add('                                      <Node called "_" matching " ">');
+    Arr.Add('                                          <Node matching " ">');
+    Arr.Add('                                  <Node matching "">');
+    Arr.Add('                      <Node called "term" matching "expression ">');
+    Arr.Add('                          <Node called "atom" matching "expression ">');
+    Arr.Add('                              <Node called "reference" matching "expression ">');
+    Arr.Add('                                  <Node called "identifier" matching "expression ">');
+    Arr.Add('                                      <RegexNode matching "expression">');
+    Arr.Add('                                      <Node called "_" matching " ">');
+    Arr.Add('                                          <Node matching " ">');
+    Arr.Add('                                  <Node matching "">');
+    Arr.Add('                      <Node called "term" matching "")" ">');
+    Arr.Add('                          <Node called "atom" matching "")" ">');
+    Arr.Add('                              <Node called "literal" matching "")" ">');
+    Arr.Add('                                  <RegexNode matching "")"">');
+    Arr.Add('                                  <Node called "_" matching " ">');
+    Arr.Add('                                      <Node matching " ">');
+    Arr.Add('                      <Node called "term" matching "_\n">');
+    Arr.Add('                          <Node called "atom" matching "_\n">');
+    Arr.Add('                              <Node called "reference" matching "_\n">');
+    Arr.Add('                                  <Node called "identifier" matching "_\n">');
+    Arr.Add('                                      <RegexNode matching "_">');
+    Arr.Add('                                      <Node called "_" matching "\n">');
+    Arr.Add('                                          <Node matching "\n">');
+    Arr.Add('                                  <Node matching "">');
+    Arr.Add('      <Node called "rule" matching "quantifier = /[*+?]/ _\n">');
+    Arr.Add('          <Node called "identifier" matching "quantifier ">');
+    Arr.Add('              <RegexNode matching "quantifier">');
+    Arr.Add('              <Node called "_" matching " ">');
+    Arr.Add('                  <Node matching " ">');
+    Arr.Add('          <Node called "assignment" matching "= ">');
+    Arr.Add('              <Node matching "=">');
+    Arr.Add('              <Node called "_" matching " ">');
+    Arr.Add('                  <Node matching " ">');
+    Arr.Add('          <Node called "expression" matching "/[*+?]/ _\n">');
+    Arr.Add('              <Node called "sequence" matching "/[*+?]/ _\n">');
+    Arr.Add('                  <Node called "term" matching "/[*+?]/ ">');
+    Arr.Add('                      <Node called "atom" matching "/[*+?]/ ">');
+    Arr.Add('                          <Node called "regex" matching "/[*+?]/ ">');
+    Arr.Add('                              <RegexNode matching "/[*+?]/">');
+    Arr.Add('                              <Node matching "">');
+    Arr.Add('                              <Node called "_" matching " ">');
+    Arr.Add('                                  <Node matching " ">');
+    Arr.Add('                  <Node matching "_\n">');
+    Arr.Add('                      <Node called "term" matching "_\n">');
+    Arr.Add('                          <Node called "atom" matching "_\n">');
+    Arr.Add('                              <Node called "reference" matching "_\n">');
+    Arr.Add('                                  <Node called "identifier" matching "_\n">');
+    Arr.Add('                                      <RegexNode matching "_">');
+    Arr.Add('                                      <Node called "_" matching "\n">');
+    Arr.Add('                                          <Node matching "\n">');
+    Arr.Add('                                  <Node matching "">');
+    Arr.Add('      <Node called "rule" matching "repetition = atom /{[0-9]+(\s*,' +
+      '\s*([0-9]+)?)?}/ _\n">');
+    Arr.Add('          <Node called "identifier" matching "repetition ">');
+    Arr.Add('              <RegexNode matching "repetition">');
+    Arr.Add('              <Node called "_" matching " ">');
+    Arr.Add('                  <Node matching " ">');
+    Arr.Add('          <Node called "assignment" matching "= ">');
+    Arr.Add('              <Node matching "=">');
+    Arr.Add('              <Node called "_" matching " ">');
+    Arr.Add('                  <Node matching " ">');
+    Arr.Add('          <Node called "expression" matching "atom /{[0-9]+(\s*,\s*([0-9]+)?)?}/ _\n">');
+    Arr.Add('              <Node called "sequence" matching "atom /{[0-9]+(\s*,\s*([0-9]+)?)?}/ _\n">');
+    Arr.Add('                  <Node called "term" matching "atom ">');
+    Arr.Add('                      <Node called "atom" matching "atom ">');
+    Arr.Add('                          <Node called "reference" matching "atom ">');
+    Arr.Add('                              <Node called "identifier" matching "atom ">');
+    Arr.Add('                                  <RegexNode matching "atom">');
+    Arr.Add('                                  <Node called "_" matching " ">');
+    Arr.Add('                                      <Node matching " ">');
+    Arr.Add('                              <Node matching "">');
+    Arr.Add('                  <Node matching "/{[0-9]+(\s*,\s*([0-9]+)?)?}/ _\n">');
+    Arr.Add('                      <Node called "term" matching "/{[0-9]+(\s*,\s*([0-9]+)?)?}/ ">');
+    Arr.Add('                          <Node called "atom" matching "/{[0-9]+(\s*,\s*([0-9]+)?)?}/ ">');
+    Arr.Add('                              <Node called "regex" matching "/{[0-' +
+      '9]+(\s*,\s*([0-9]+)?)?}/ ">');
+    Arr.Add('                                  <RegexNode matching "/{[0-9]+(\s*,\s*([0-9]+)?)?}/">');
+    Arr.Add('                                  <Node matching "">');
+    Arr.Add('                                  <Node called "_" matching " ">');
+    Arr.Add('                                      <Node matching " ">');
+    Arr.Add('                      <Node called "term" matching "_\n">');
+    Arr.Add('                          <Node called "atom" matching "_\n">');
+    Arr.Add('                              <Node called "reference" matching "_\n">');
+    Arr.Add('                                  <Node called "identifier" matching "_\n">');
+    Arr.Add('                                      <RegexNode matching "_">');
+    Arr.Add('                                      <Node called "_" matching "\n">');
+    Arr.Add('                                          <Node matching "\n">');
+    Arr.Add('                                  <Node matching "">');
+    Arr.Add('      <Node called "rule" matching "reference = identifier !assignment\n">');
+    Arr.Add('          <Node called "identifier" matching "reference ">');
+    Arr.Add('              <RegexNode matching "reference">');
+    Arr.Add('              <Node called "_" matching " ">');
+    Arr.Add('                  <Node matching " ">');
+    Arr.Add('          <Node called "assignment" matching "= ">');
+    Arr.Add('              <Node matching "=">');
+    Arr.Add('              <Node called "_" matching " ">');
+    Arr.Add('                  <Node matching " ">');
+    Arr.Add('          <Node called "expression" matching "identifier !assignment\n">');
+    Arr.Add('              <Node called "sequence" matching "identifier !assignment\n">');
+    Arr.Add('                  <Node called "term" matching "identifier ">');
+    Arr.Add('                      <Node called "atom" matching "identifier ">');
+    Arr.Add('                          <Node called "reference" matching "identifier ">');
+    Arr.Add('                              <Node called "identifier" matching "identifier ">');
+    Arr.Add('                                  <RegexNode matching "identifier">');
+    Arr.Add('                                  <Node called "_" matching " ">');
+    Arr.Add('                                      <Node matching " ">');
+    Arr.Add('                              <Node matching "">');
+    Arr.Add('                  <Node matching "!assignment\n">');
+    Arr.Add('                      <Node called "term" matching "!assignment\n">');
+    Arr.Add('                          <Node called "negative_lookahead_term" matching "!assignment\n">');
+    Arr.Add('                              <Node matching "!">');
+    Arr.Add('                              <Node called "term" matching "assignment\n">');
+    Arr.Add('                                  <Node called "atom" matching "assignment\n">');
+    Arr.Add('                                      <Node called "reference" matching "assignment\n">');
+    Arr.Add('                                          <Node called "identifier" matching "assignment\n">');
+    Arr.Add('                                              <RegexNode matching "assignment">');
+    Arr.Add('                                              <Node called "_" matching "\n">');
+    Arr.Add('                                                  <Node matching "\n">');
+    Arr.Add('                                          <Node matching "">');
+    Arr.Add('                              <Node called "_" matching "">');
+    Arr.Add('                                  <Node matching "">');
+    Arr.Add('      <Node called "rule" matching "identifier = /[a-z_][a-z0-9_]*/i _\n">');
+    Arr.Add('          <Node called "identifier" matching "identifier ">');
+    Arr.Add('              <RegexNode matching "identifier">');
+    Arr.Add('              <Node called "_" matching " ">');
+    Arr.Add('                  <Node matching " ">');
+    Arr.Add('          <Node called "assignment" matching "= ">');
+    Arr.Add('              <Node matching "=">');
+    Arr.Add('              <Node called "_" matching " ">');
+    Arr.Add('                  <Node matching " ">');
+    Arr.Add('          <Node called "expression" matching "/[a-z_][a-z0-9_]*/i _\n">');
+    Arr.Add('              <Node called "sequence" matching "/[a-z_][a-z0-9_]*/i _\n">');
+    Arr.Add('                  <Node called "term" matching "/[a-z_][a-z0-9_]*/i ">');
+    Arr.Add('                      <Node called "atom" matching "/[a-z_][a-z0-9_]*/i ">');
+    Arr.Add('                          <Node called "regex" matching "/[a-z_][a-z0-9_]*/i ">');
+    Arr.Add('                              <RegexNode matching "/[a-z_][a-z0-9_]*/">');
+    Arr.Add('                              <Node matching "i">');
+    Arr.Add('                              <Node called "_" matching " ">');
+    Arr.Add('                                  <Node matching " ">');
+    Arr.Add('                  <Node matching "_\n">');
+    Arr.Add('                      <Node called "term" matching "_\n">');
+    Arr.Add('                          <Node called "atom" matching "_\n">');
+    Arr.Add('                              <Node called "reference" matching "_\n">');
+    Arr.Add('                                  <Node called "identifier" matching "_\n">');
+    Arr.Add('                                      <RegexNode matching "_">');
+    Arr.Add('                                      <Node called "_" matching "\n">');
+    Arr.Add('                                          <Node matching "\n">');
+    Arr.Add('                                  <Node matching "">');
+    Arr.Add('      <Node called "rule" matching "_ = /\s+/? | comment\n">');
+    Arr.Add('          <Node called "identifier" matching "_ ">');
+    Arr.Add('              <RegexNode matching "_">');
+    Arr.Add('              <Node called "_" matching " ">');
+    Arr.Add('                  <Node matching " ">');
+    Arr.Add('          <Node called "assignment" matching "= ">');
+    Arr.Add('              <Node matching "=">');
+    Arr.Add('              <Node called "_" matching " ">');
+    Arr.Add('                  <Node matching " ">');
+    Arr.Add('          <Node called "expression" matching "/\s+/? | comment\n">');
+    Arr.Add('              <Node called "ored" matching "/\s+/? | comment\n">');
+    Arr.Add('                  <Node called "term" matching "/\s+/? ">');
+    Arr.Add('                      <Node called "quantified" matching "/\s+/? ">');
+    Arr.Add('                          <Node called "atom" matching "/\s+/">');
+    Arr.Add('                              <Node called "regex" matching "/\s+/">');
+    Arr.Add('                                  <RegexNode matching "/\s+/">');
+    Arr.Add('                                  <Node matching "">');
+    Arr.Add('                                  <Node called "_" matching "">');
+    Arr.Add('                                      <Node matching "">');
+    Arr.Add('                          <Node called "quantifier" matching "? ">');
+    Arr.Add('                              <RegexNode matching "?">');
+    Arr.Add('                              <Node called "_" matching " ">');
+    Arr.Add('                                  <Node matching " ">');
+    Arr.Add('                  <Node matching "| comment\n">');
+    Arr.Add('                      <Node called "or_term" matching "| comment\n">');
+    Arr.Add('                          <Node matching "|">');
+    Arr.Add('                          <Node called "_" matching " ">');
+    Arr.Add('                              <Node matching " ">');
+    Arr.Add('                          <Node called "term" matching "comment\n">');
+    Arr.Add('                              <Node called "atom" matching "comment\n">');
+    Arr.Add('                                  <Node called "reference" matching "comment\n">');
+    Arr.Add('                                      <Node called "identifier" matching "comment\n">');
+    Arr.Add('                                          <RegexNode matching "comment">');
+    Arr.Add('                                          <Node called "_" matching "\n">');
+    Arr.Add('                                              <Node matching "\n">');
+    Arr.Add('                                      <Node matching "">');
+    Arr.Add('      <Node called "rule" matching "comment = /#.*?(?:\r\n|$)/">');
+    Arr.Add('          <Node called "identifier" matching "comment ">');
+    Arr.Add('              <RegexNode matching "comment">');
+    Arr.Add('              <Node called "_" matching " ">');
+    Arr.Add('                  <Node matching " ">');
+    Arr.Add('          <Node called "assignment" matching "= ">');
+    Arr.Add('              <Node matching "=">');
+    Arr.Add('              <Node called "_" matching " ">');
+    Arr.Add('                  <Node matching " ">');
+    Arr.Add('          <Node called "expression" matching "/#.*?(?:\r\n|$)/">');
+    Arr.Add('              <Node called "term" matching "/#.*?(?:\r\n|$)/">');
+    Arr.Add('                  <Node called "atom" matching "/#.*?(?:\r\n|$)/">');
+    Arr.Add('                      <Node called "regex" matching "/#.*?(?:\r\n|$)/">');
+    Arr.Add('                          <RegexNode matching "/#.*?(?:\r\n|$)/">');
+    Arr.Add('                          <Node matching "">');
+    Arr.Add('                          <Node called "_" matching "">');
+    Arr.Add('                              <Node matching "">');
     Result := Arr.AsString;
   end;
 
@@ -567,7 +1322,7 @@ var
 begin
   BootstrappingGrammar := TBootstrappingGrammar.Create;
   Tree := BootstrappingGrammar.Parse(GetGrammarAsText);
-  ShowMessage(GetPrintedTreeText(Tree));
+  CheckEquals(GetExpectedText, GetPrintedTreeText(Tree));
 end;
 
 procedure TestGrammar.TestBootstrappingGrammarGeneratedRules;
@@ -577,20 +1332,139 @@ procedure TestGrammar.TestBootstrappingGrammarGeneratedRules;
     Arr: IArrayString;
   begin
     Arr := TArrayString.Create;
-    Arr.Add('exp = int "+" int');
-    Arr.Add('int = /[0-9]+/');
+    Arr.Add('add = number ("+" number)*');
+    Arr.Add('number = _ /[0-9]+/ _');
+    Arr.Add('_ = /\s+/?');
+    Result := Arr.AsString;
+  end;
+
+  function GetExpectedText: string;
+  var
+    Arr: IArrayString;
+  begin
+    Arr := TArrayString.Create;
+    Arr.Add('<Node called "rules" matching "add = number ("+" number)*\nnumber = _ /[0-9]+/ _\n_ = /\s+/?">');
+    Arr.Add('  <Node called "_" matching "">');
+    Arr.Add('      <Node matching "">');
+    Arr.Add('  <Node matching "add = number ("+" number)*\nnumber = _ /[0-9]+/ _\n_ = /\s+/?">');
+    Arr.Add('      <Node called "rule" matching "add = number ("+" number)*\n">');
+    Arr.Add('          <Node called "identifier" matching "add ">');
+    Arr.Add('              <RegexNode matching "add">');
+    Arr.Add('              <Node called "_" matching " ">');
+    Arr.Add('                  <Node matching " ">');
+    Arr.Add('          <Node called "assignment" matching "= ">');
+    Arr.Add('              <Node matching "=">');
+    Arr.Add('              <Node called "_" matching " ">');
+    Arr.Add('                  <Node matching " ">');
+    Arr.Add('          <Node called "expression" matching "number ("+" number)*\n">');
+    Arr.Add('              <Node called "sequence" matching "number ("+" number)*\n">');
+    Arr.Add('                  <Node called "term" matching "number ">');
+    Arr.Add('                      <Node called "atom" matching "number ">');
+    Arr.Add('                          <Node called "reference" matching "number ">');
+    Arr.Add('                              <Node called "identifier" matching "number ">');
+    Arr.Add('                                  <RegexNode matching "number">');
+    Arr.Add('                                  <Node called "_" matching " ">');
+    Arr.Add('                                      <Node matching " ">');
+    Arr.Add('                              <Node matching "">');
+    Arr.Add('                  <Node matching "("+" number)*\n">');
+    Arr.Add('                      <Node called "term" matching "("+" number)*\n">');
+    Arr.Add('                          <Node called "quantified" matching "("+" number)*\n">');
+    Arr.Add('                              <Node called "atom" matching "("+" number)">');
+    Arr.Add('                                  <Node called "parenthesized" matching "("+" number)">');
+    Arr.Add('                                      <Node matching "(">');
+    Arr.Add('                                      <Node called "_" matching "">');
+    Arr.Add('                                          <Node matching "">');
+    Arr.Add('                                      <Node called "expression" matching ""+" number">');
+    Arr.Add('                                          <Node called "sequence" matching ""+" number">');
+    Arr.Add('                                              <Node called "term" matching ""+" ">');
+    Arr.Add('                                                  <Node called "atom" matching ""+" ">');
+    Arr.Add('                                                      <Node called "literal" matching ""+" ">');
+    Arr.Add('                                                          <RegexNode matching ""+"">');
+    Arr.Add('                                                          <Node called "_" matching " ">');
+    Arr.Add('                                                              <Node matching " ">');
+    Arr.Add('                                              <Node matching "number">');
+    Arr.Add('                                                  <Node called "term" matching "number">');
+    Arr.Add('                                                      <Node called "atom" matching "number">');
+    Arr.Add('                                                          <Node called "reference" matching "number">');
+    Arr.Add('                                                              <Node called "identifier" matching "number">');
+    Arr.Add('                                                                  <RegexNode matching "number">');
+    Arr.Add('                                                                  <Node called "_" matching "">');
+    Arr.Add('                                                                      <Node matching "">');
+    Arr.Add('                                                              <Node matching "">');
+    Arr.Add('                                      <Node matching ")">');
+    Arr.Add('                                      <Node called "_" matching "">');
+    Arr.Add('                                          <Node matching "">');
+    Arr.Add('                              <Node called "quantifier" matching "*\n">');
+    Arr.Add('                                  <RegexNode matching "*">');
+    Arr.Add('                                  <Node called "_" matching "\n">');
+    Arr.Add('                                      <Node matching "\n">');
+    Arr.Add('      <Node called "rule" matching "number = _ /[0-9]+/ _\n">');
+    Arr.Add('          <Node called "identifier" matching "number ">');
+    Arr.Add('              <RegexNode matching "number">');
+    Arr.Add('              <Node called "_" matching " ">');
+    Arr.Add('                  <Node matching " ">');
+    Arr.Add('          <Node called "assignment" matching "= ">');
+    Arr.Add('              <Node matching "=">');
+    Arr.Add('              <Node called "_" matching " ">');
+    Arr.Add('                  <Node matching " ">');
+    Arr.Add('          <Node called "expression" matching "_ /[0-9]+/ _\n">');
+    Arr.Add('              <Node called "sequence" matching "_ /[0-9]+/ _\n">');
+    Arr.Add('                  <Node called "term" matching "_ ">');
+    Arr.Add('                      <Node called "atom" matching "_ ">');
+    Arr.Add('                          <Node called "reference" matching "_ ">');
+    Arr.Add('                              <Node called "identifier" matching "_ ">');
+    Arr.Add('                                  <RegexNode matching "_">');
+    Arr.Add('                                  <Node called "_" matching " ">');
+    Arr.Add('                                      <Node matching " ">');
+    Arr.Add('                              <Node matching "">');
+    Arr.Add('                  <Node matching "/[0-9]+/ _\n">');
+    Arr.Add('                      <Node called "term" matching "/[0-9]+/ ">');
+    Arr.Add('                          <Node called "atom" matching "/[0-9]+/ ">');
+    Arr.Add('                              <Node called "regex" matching "/[0-9]+/ ">');
+    Arr.Add('                                  <RegexNode matching "/[0-9]+/">');
+    Arr.Add('                                  <Node matching "">');
+    Arr.Add('                                  <Node called "_" matching " ">');
+    Arr.Add('                                      <Node matching " ">');
+    Arr.Add('                      <Node called "term" matching "_\n">');
+    Arr.Add('                          <Node called "atom" matching "_\n">');
+    Arr.Add('                              <Node called "reference" matching "_\n">');
+    Arr.Add('                                  <Node called "identifier" matching "_\n">');
+    Arr.Add('                                      <RegexNode matching "_">');
+    Arr.Add('                                      <Node called "_" matching "\n">');
+    Arr.Add('                                          <Node matching "\n">');
+    Arr.Add('                                  <Node matching "">');
+    Arr.Add('      <Node called "rule" matching "_ = /\s+/?">');
+    Arr.Add('          <Node called "identifier" matching "_ ">');
+    Arr.Add('              <RegexNode matching "_">');
+    Arr.Add('              <Node called "_" matching " ">');
+    Arr.Add('                  <Node matching " ">');
+    Arr.Add('          <Node called "assignment" matching "= ">');
+    Arr.Add('              <Node matching "=">');
+    Arr.Add('              <Node called "_" matching " ">');
+    Arr.Add('                  <Node matching " ">');
+    Arr.Add('          <Node called "expression" matching "/\s+/?">');
+    Arr.Add('              <Node called "term" matching "/\s+/?">');
+    Arr.Add('                  <Node called "quantified" matching "/\s+/?">');
+    Arr.Add('                      <Node called "atom" matching "/\s+/">');
+    Arr.Add('                          <Node called "regex" matching "/\s+/">');
+    Arr.Add('                              <RegexNode matching "/\s+/">');
+    Arr.Add('                              <Node matching "">');
+    Arr.Add('                              <Node called "_" matching "">');
+    Arr.Add('                                  <Node matching "">');
+    Arr.Add('                      <Node called "quantifier" matching "?">');
+    Arr.Add('                          <RegexNode matching "?">');
+    Arr.Add('                          <Node called "_" matching "">');
+    Arr.Add('                              <Node matching "">');
     Result := Arr.AsString;
   end;
 
 var
-//  Tree: INode;
-  Rules: IList<IRule>;
+  Tree: INode;
   BootstrappingGrammar: IBootstrappingGrammar;
 begin
   BootstrappingGrammar := TBootstrappingGrammar.Create;
-//  Tree := BootstrappingGrammar.Parse(GetSampleGrammar);
-//  ShowMessage(GetPrintedTreeText(Tree));
-  Rules := BootstrappingGrammar.GetRules(GetSampleGrammar);
+  Tree := BootstrappingGrammar.Parse(GetSampleGrammar);
+  CheckEquals(GetExpectedText, GetPrintedTreeText(Tree));
 end;
 
 { TestNode }
@@ -616,11 +1490,13 @@ var
   Node: INode;
 begin
   Context := TContext.Create('0123456789 original text');
-  Exp := TLookahedExpression.Create(TRegexExpression.Create('[0-9]+'));
+  Exp := TLookaheadExpression.Create(TRegexExpression.Create('[0-9]+'));
   Node := Exp.Match(Context);
   CheckEquals('0123456789', Node.Text);
   CheckEquals(0, Node.Index);
-  CheckNull(Node.Children);
+  CheckNotNull(Node.Children);
+  CheckEquals('0123456789', Node.Children[0].Text);
+  CheckEquals(0, Node.Children[0].Index);
 end;
 
 procedure TestNode.TestNodeNegativeLookaheadExpression;
@@ -655,7 +1531,9 @@ begin
   Node := Exp.Match(Context);
   CheckEquals('0123456789', Node.Text);
   CheckEquals(0, Node.Index);
-  CheckNull(Node.Children);
+  CheckNotNull(Node.Children);
+  CheckEquals('0123456789', Node.Children[0].Text);
+  CheckEquals(0, Node.Children[0].Index);
 end;
 
 procedure TestNode.TestNodeRegexExpression;
@@ -892,32 +1770,13 @@ var
     Arr: IArrayString;
   begin
     Arr := TArrayString.Create;
-    Arr.Add('<node "expression_handler">');
-    Arr.Add('  <text>literal_text 0123456789 anyIdentifier</text>');
-    Arr.Add('  <index>0</index>');
-    Arr.Add('  <children>');
-    Arr.Add('    <node>');
-    Arr.Add('      <text>literal_text</text>');
-    Arr.Add('      <index>0</index>');
-    Arr.Add('    </node>');
-    Arr.Add('    <node>');
-    Arr.Add('      <text> </text>');
-    Arr.Add('      <index>12</index>');
-    Arr.Add('    </node>');
-    Arr.Add('    <node>');
-    Arr.Add('      <text>0123456789</text>');
-    Arr.Add('      <index>13</index>');
-    Arr.Add('    </node>');
-    Arr.Add('    <node>');
-    Arr.Add('      <text> </text>');
-    Arr.Add('      <index>23</index>');
-    Arr.Add('    </node>');
-    Arr.Add('    <node>');
-    Arr.Add('      <text>anyIdentifier</text>');
-    Arr.Add('      <index>24</index>');
-    Arr.Add('    </node>');
-    Arr.Add('  </children>');
-    Arr.Add('</node>');
+    Arr.Add('<Node called "expression_handler" matching '+
+            '"literal_text 0123456789 anyIdentifier">');
+    Arr.Add('  <Node matching "literal_text">');
+    Arr.Add('  <Node matching " ">');
+    Arr.Add('  <RegexNode matching "0123456789">');
+    Arr.Add('  <Node matching " ">');
+    Arr.Add('  <RegexNode matching "anyIdentifier">');
     Result := Arr.AsString;
   end;
 

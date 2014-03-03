@@ -124,7 +124,7 @@ type
 
   // An expression which consumes nothing, even if its contained expression
   // succeeds
-  TLookahedExpression = class(TExpressionContainer)
+  TLookaheadExpression = class(TExpressionContainer)
   strict protected
     function ApplyExpression(const aContext: IContext): INode; override;
   public
@@ -389,13 +389,18 @@ function TOneOfExpression.ApplyExpression(
   const aContext: IContext): INode;
 var
   Expression: IExpression;
+  Children: IList<INode>;
+  PreviousIndex: Integer;
 begin
   Result := nil;
+  PreviousIndex := aContext.Index;
+  Children := Collections.CreateList<INode>;
   for Expression in Expressions do
   begin
     if Expression.IsMatch(aContext) then
     begin
-      Result := Expression.Match(aContext); {TODO -oHelton -cCheck : Check if I need create a node and pass the expression node as a child node}
+      Children.Add(Expression.Match(aContext));
+      Result := TNode.Create(Name, Children[0].Text, PreviousIndex, Children);
       Break;
     end;
   end;
@@ -427,21 +432,28 @@ begin
   FExpression := aExpression;
 end;
 
-{ TLookahedExpression }
+{ TLookaheadExpression }
 
-function TLookahedExpression.ApplyExpression(const aContext: IContext): INode;
+function TLookaheadExpression.ApplyExpression(const aContext: IContext): INode;
 var
   Node: INode;
+  Children: IList<INode>;
+  PreviousIndex: Integer;
 begin
   Result := nil;
+  PreviousIndex := aContext.Index;
   aContext.SaveState;
   Node := Expression.Match(aContext); { don't consumes text }
-  if Assigned(Node) then              {TODO -oHelton -cCheck : Is is right? }
-    Result := Node;
+  if Assigned(Node) then
+  begin
+    Children := Collections.CreateList<INode>;
+    Children.Add(Node);
+  end;
+  Result := TNode.Create(Name, Node.Text, PreviousIndex, Children);
   aContext.RestoreState;
 end;
 
-function TLookahedExpression.AsString: string;
+function TLookaheadExpression.AsString: string;
 begin
   Result := '&' + inherited;
 end;
@@ -613,7 +625,7 @@ var
   Node: INode;
 begin
   Node := inherited;
-  Result := TNode.Create(Name, Node.Text, Node.Index, nil);
+  Result := TNode.Create(Name, Node.Text, Node.Index, nil); {TODO -oHelton -cQuestion : Is is right?}
 end;
 
 function TRepeatOptionalExpression.AsString: string;
@@ -641,7 +653,7 @@ end;
 function TRuleReferenceExpression.ApplyExpression(
   const aContext: IContext): INode;
 begin
-  Result := FRule.Expression.Match(aContext);
+  Result := FRule.Expression.Match(aContext); {TODO -oHelton -cQuestion : Is is right?}
 end;
 
 function TRuleReferenceExpression.AsString: string;

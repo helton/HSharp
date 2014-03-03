@@ -26,15 +26,22 @@ interface
 
 uses
   System.Rtti,
+  HSharp.Collections.Interfaces,
   HSharp.PEG.Node.Interfaces,
   HSharp.PEG.Rule.Interfaces;
 
 type
-  IGrammar = interface
+  IBaseGrammar = interface
     ['{E1A9FA2D-86A4-4EEB-969A-0DE8C36848FF}']
+    function AsString: string;
     function Parse(const aText: string): INode;
     function ParseAndVisit(const aText: string): TValue;
-    function AsString: string;
+  end;
+
+  IGrammar = interface(IBaseGrammar)
+    ['{62382986-2D51-4205-ACC9-78615533CBDF}']
+    function GetGrammarText: string;
+    property GrammarText: string read GetGrammarText;
   end;
 
 implementation

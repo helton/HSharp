@@ -33,12 +33,12 @@ uses
 type
   TGrammarNodeVisitor = class(TInterfacedObject, INodeVisitor)
   strict private
-    FGrammar: IGrammar;
+    FGrammar: IBaseGrammar;
     FRuleMethodsDict: IDictionary<string, TRttiMethod>;
   strict protected
     function Visit(const aNode: INode): TValue;
   public
-    constructor Create(const aGrammar: IGrammar; const aRuleMethodsDict: IDictionary<string, TRttiMethod>); reintroduce;
+    constructor Create(const aGrammar: IBaseGrammar; const aRuleMethodsDict: IDictionary<string, TRttiMethod>); reintroduce;
   end;
 
   TPrinterNodeVisitor = class(TInterfacedObject, INodeVisitor)
@@ -59,7 +59,7 @@ uses
 
 { TNodeVisitor }
 
-constructor TGrammarNodeVisitor.Create(const aGrammar: IGrammar;
+constructor TGrammarNodeVisitor.Create(const aGrammar: IBaseGrammar;
   const aRuleMethodsDict: IDictionary<string, TRttiMethod>);
 begin
   inherited Create;

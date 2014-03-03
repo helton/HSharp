@@ -28,12 +28,14 @@ uses
   HSharp.Collections.Interfaces,
   HSharp.Collections.Dictionary,
   HSharp.Collections.List,
+  HSharp.Collections.ObjectList,
   HSharp.Collections.Stack;
 
 type
   Collections = class
   public
     class function CreateList<T>: IList<T>;
+    class function CreateObjectList<T: class>: IObjectList<T>;
     class function CreateDictionary<TKey,TValue>: IDictionary<TKey,TValue>;
     class function CreateStack<T>: IStack<T>;
   end;
@@ -50,6 +52,11 @@ end;
 class function Collections.CreateList<T>: IList<T>;
 begin
   Result := TInterfacedList<T>.Create;
+end;
+
+class function Collections.CreateObjectList<T>: IObjectList<T>;
+begin
+  Result := TInterfacedObjectList<T>.Create;
 end;
 
 class function Collections.CreateStack<T>: IStack<T>;

@@ -25,107 +25,63 @@ unit HSharp.PEG.Grammar;
 interface
 
 uses
-  System.Rtti,
-  HSharp.Collections,
-  HSharp.Collections.Interfaces,
-  HSharp.PEG.Context,
-  HSharp.PEG.Context.Interfaces,
-  HSharp.PEG.Exceptions,
-  HSharp.PEG.Grammar.Interfaces,
-  HSharp.PEG.Node.Interfaces,
-  HSharp.PEG.Node.Visitors,
-  HSharp.PEG.Rule.Interfaces;
+  HSharp.PEG.Rule.Interfaces,
+  HSharp.PEG.Grammar.Base,
+  HSharp.PEG.Grammar.Bootstrapping,
+  HSharp.PEG.Grammar.Interfaces;
 
 type
-  TGrammar = class(TInterfacedObject, IGrammar)
+  TGrammar = class(TBaseGrammar, IGrammar)
   strict private
-    FRuleMethodsDict: IDictionary<string, TRttiMethod>;
-    FRootRule: IRule; //should be a weak reference?
-    FRules: IList<IRule>;
+    FGrammarText: string;
+  strict protected
+    procedure BuildGrammarText;
+    function GetGrammarText: string;
   public
-    constructor Create(const aRules: array of IRule;
-      const aRootRule: IRule = nil); overload; virtual;
-    function Parse(const aText: string): INode;
-    function ParseAndVisit(const aText: string): TValue;
-    function AsString: string;
+    constructor Create; reintroduce;
+    property GrammarText: string read FGrammarText;
   end;
 
 implementation
 
 uses
-  System.SysUtils,
-  HSharp.Core.Arrays,
+  System.Rtti,
   HSharp.Core.ArrayString,
-  HSharp.Core.Rtti;
+  HSharp.Core.Rtti,
+  HSharp.PEG.Grammar.Attributes;
 
-{ TGrammar }
+{ TAnnotatedGrammar }
 
-function TGrammar.AsString: string;
+procedure TGrammar.BuildGrammarText;
 var
-  Rule: IRule;
+  Method: TRttiMethod;
+  Attribute: TCustomAttribute;
   Grammar: IArrayString;
 begin
   Grammar := TArrayString.Create;
-  Grammar.Add(FRootRule.AsString);
-  for Rule in FRules do
+  for Method in RttiContext.GetType(ClassType).GetMethods do
   begin
-    if Rule <> FRootRule then
-      Grammar.Add(Rule.AsString);
-  end;
-  Result := Grammar.AsString;
-end;
-
-constructor TGrammar.Create(const aRules: array of IRule;
-  const aRootRule: IRule);
-
-  procedure MapRules;
-  var
-    Rule: IRule;
-    Method: TRttiMethod;
-  begin
-    FRuleMethodsDict := Collections.CreateDictionary<string, TRttiMethod>;
-    for Rule in FRules do
+    for Attribute in Method.GetAttributes do
     begin
-      Method := RttiContext.GetType(ClassType).GetMethod('Visit_' + Rule.Name);
-      if Assigned(Method) then
-        FRuleMethodsDict.Add(Rule.Name, Method);
+      if Attribute is RuleAttribute then
+        Grammar.Add(RuleAttribute(Attribute).Rule);
     end;
   end;
-
-begin
-  inherited Create;
-  FRules := Collections.CreateList<IRule>;
-  FRules.AddRange(aRules);
-  if Assigned(aRootRule) then
-    FRootRule := aRootRule
-  else
-    FRootRule := FRules.First;
-  MapRules;
+  FGrammarText := Grammar.AsString;
 end;
 
-function TGrammar.Parse(const aText: string): INode;
+constructor TGrammar.Create;
 var
-  Context: IContext;
+  BootstrappingGrammar: IBootstrappingGrammar;
 begin
-  Context := TContext.Create(aText);
-  Result := FRootRule.Parse(Context);
-  if not Context.Text.IsEmpty then
-    raise EIncompleteParseError.CreateFmt('Rule "%s" matched in its entirety, ' +
-      'but it didn''t consume all the text. The non-matching portion of the ' +
-      'text is "%s"', [FRootRule.Name, Context.Text]);
+  BuildGrammarText;
+  BootstrappingGrammar := TBootstrappingGrammar.Create;
+  inherited Create(BootstrappingGrammar.GetRules(FGrammarText));
 end;
 
-function TGrammar.ParseAndVisit(const aText: string): TValue;
-var
-  Node: INode;
-  NodeVisitor: INodeVisitor;
-  VisitableNode: IVisitableNode;
+function TGrammar.GetGrammarText: string;
 begin
-  Result := nil;
-  Node := Parse(aText);
-  NodeVisitor := TGrammarNodeVisitor.Create(Self, FRuleMethodsDict);
-  if Supports(Node, IVisitableNode, VisitableNode) then
-    Result := VisitableNode.Accept(NodeVisitor);
+  Result := FGrammarText;
 end;
 
 end.

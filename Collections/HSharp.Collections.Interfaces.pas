@@ -64,6 +64,10 @@ type
     function ToArray: TArray<T>;
   end;
 
+  IObjectList<T: class> = interface(IList<T>)
+    ['{BA8CB6D8-A1E2-4DD3-9DA6-57CA955C101D}']
+  end;
+
   IDictionary<TKey,TValue> = interface(IDictionaryInternal<TKey,TValue>)
     ['{C52D99FF-F91A-4397-83EB-27DA8FB47705}']
     procedure Add(const Key: TKey; const Value: TValue);
