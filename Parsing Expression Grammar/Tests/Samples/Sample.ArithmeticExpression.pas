@@ -101,7 +101,7 @@ function TArithmeticExpression.Visit_Add(const aNode: INode;
 var
   Node: INode;
 begin
-  Result := aArgs.Items[0].AsInteger;
+  Result := aArgs[0].AsInteger;
   for Node in aNode.Children[1].Children do
     Result := Result.AsInteger + Node.Children[1].Text.ToInteger;
 end;

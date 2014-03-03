@@ -26,6 +26,7 @@ interface
 
 uses
   TestFramework,
+  HSharp.Collections.Interfaces,
   HSharp.PEG.Context,
   HSharp.PEG.Context.Interfaces,
   HSharp.PEG.Exceptions,
@@ -582,12 +583,14 @@ procedure TestGrammar.TestBootstrappingGrammarGeneratedRules;
   end;
 
 var
-  Tree: INode;
+//  Tree: INode;
+  Rules: IList<IRule>;
   BootstrappingGrammar: IBootstrappingGrammar;
 begin
   BootstrappingGrammar := TBootstrappingGrammar.Create;
-  Tree := BootstrappingGrammar.Parse(GetSampleGrammar);
-  ShowMessage(GetPrintedTreeText(Tree));
+//  Tree := BootstrappingGrammar.Parse(GetSampleGrammar);
+//  ShowMessage(GetPrintedTreeText(Tree));
+  Rules := BootstrappingGrammar.GetRules(GetSampleGrammar);
 end;
 
 { TestNode }

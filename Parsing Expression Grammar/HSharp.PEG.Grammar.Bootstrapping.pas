@@ -40,17 +40,15 @@ uses
 type
   IBootstrappingGrammar = interface(IGrammar)
     ['{D83E083A-9452-4C4F-8DFB-379CF81BFA1D}']
-    function GetRules: IList<IRule>;
+    function GetRules(const aGrammarText: string): IList<IRule>;
   end;
 
   TBootstrappingGrammar = class(TGrammar, IBootstrappingGrammar)
-  strict private
-    FRules: IList<IRule>;
   public
-    function Visit_rules(const aNode: INode; const aArgs: IArray<TValue>): TValue;
-    function Visit_rule(const aNode: INode; const aArgs: IArray<TValue>): TValue;
-    function Visit_assignment(const aNode: INode; const aArgs: IArray<TValue>): TValue;
-    function Visit_literal(const aNode: INode; const aArgs: IArray<TValue>): TValue;
+{??}function Visit_rules(const aNode: INode; const aArgs: IArray<TValue>): TValue;
+{OK}function Visit_rule(const aNode: INode; const aArgs: IArray<TValue>): TValue;
+{OK}function Visit_assignment(const aNode: INode; const aArgs: IArray<TValue>): TValue;
+{OK}function Visit_literal(const aNode: INode; const aArgs: IArray<TValue>): TValue;
     function Visit_expression(const aNode: INode; const aArgs: IArray<TValue>): TValue;
     function Visit_or_term(const aNode: INode; const aArgs: IArray<TValue>): TValue;
     function Visit_ored(const aNode: INode; const aArgs: IArray<TValue>): TValue;
@@ -62,16 +60,16 @@ type
     function Visit_atom(const aNode: INode; const aArgs: IArray<TValue>): TValue;
     function Visit_regex(const aNode: INode; const aArgs: IArray<TValue>): TValue;
     function Visit_parenthesized(const aNode: INode; const aArgs: IArray<TValue>): TValue;
-    function Visit_quantifier(const aNode: INode; const aArgs: IArray<TValue>): TValue;
+{OK}function Visit_quantifier(const aNode: INode; const aArgs: IArray<TValue>): TValue;
     function Visit_repetition(const aNode: INode; const aArgs: IArray<TValue>): TValue;
     function Visit_reference(const aNode: INode; const aArgs: IArray<TValue>): TValue;
-    function Visit_identifier(const aNode: INode; const aArgs: IArray<TValue>): TValue;
-    function Visit__(const aNode: INode; const aArgs: IArray<TValue>): TValue;
-    function Visit_comment(const aNode: INode; const aArgs: IArray<TValue>): TValue;
+{..}function Visit_identifier(const aNode: INode; const aArgs: IArray<TValue>): TValue;
+{OK}function Visit__(const aNode: INode; const aArgs: IArray<TValue>): TValue;
+{OK}function Visit_comment(const aNode: INode; const aArgs: IArray<TValue>): TValue;
   public
     constructor Create; overload;
     { IBootstrappingGrammar }
-    function GetRules: IList<IRule>;
+    function GetRules(const aGrammarText: string): IList<IRule>;
   end;
 
 implementation
@@ -315,18 +313,16 @@ begin
   SetupRules;
   CreateRulesArray;
   inherited Create(RulesArray);
-  FRules := Collections.CreateList<IRule>;
 end;
 
-function TBootstrappingGrammar.GetRules: IList<IRule>;
+function TBootstrappingGrammar.GetRules(const aGrammarText: string): IList<IRule>;
 begin
-  Result := FRules;
+  Result := ParseAndVisit(aGrammarText).AsType<IList<IRule>>;
 end;
 
 function TBootstrappingGrammar.Visit_assignment(const aNode: INode;
   const aArgs: IArray<TValue>): TValue;
 begin
-  Result := nil;
 end;
 
 function TBootstrappingGrammar.Visit_atom(const aNode: INode;
@@ -338,7 +334,6 @@ end;
 function TBootstrappingGrammar.Visit_comment(const aNode: INode;
   const aArgs: IArray<TValue>): TValue;
 begin
-  Result := nil;
 end;
 
 function TBootstrappingGrammar.Visit_expression(const aNode: INode;
@@ -350,13 +345,13 @@ end;
 function TBootstrappingGrammar.Visit_identifier(const aNode: INode;
   const aArgs: IArray<TValue>): TValue;
 begin
-  Result := nil;
+  Result := aNode.Children[0].Text;
 end;
 
 function TBootstrappingGrammar.Visit_literal(const aNode: INode;
   const aArgs: IArray<TValue>): TValue;
 begin
-  Result := nil;
+  Result := aNode.Children[0].Text;
 end;
 
 function TBootstrappingGrammar.Visit_lookahead_term(const aNode: INode;
@@ -398,7 +393,7 @@ end;
 function TBootstrappingGrammar.Visit_quantifier(const aNode: INode;
   const aArgs: IArray<TValue>): TValue;
 begin
-  Result := nil;
+  Result := aNode.Children[0].Text;
 end;
 
 function TBootstrappingGrammar.Visit_reference(const aNode: INode;
@@ -421,14 +416,24 @@ end;
 
 function TBootstrappingGrammar.Visit_rule(const aNode: INode;
   const aArgs: IArray<TValue>): TValue;
+var
+  Rule: IRule;
 begin
-  Result := nil;
+  Rule := TRule.Create(aArgs[0].AsString);
+//  Rule.Expression := aArgs[2].AsType<IExpression>;
+  Result := TValue.From<IRule>(Rule);
 end;
 
 function TBootstrappingGrammar.Visit_rules(const aNode: INode;
   const aArgs: IArray<TValue>): TValue;
+var
+  FRules: IList<IRule>;
+//  Node: INode;
 begin
-  Result := nil;
+  FRules := Collections.CreateList<IRule>;
+//  for Node in aNode.Children[1].Children do
+//    FRules.Add(Node.Children[1].Text).AsType<IRule>;
+  Result := TValue.From<IList<IRule>>(FRules);
 end;
 
 function TBootstrappingGrammar.Visit_sequence(const aNode: INode;
@@ -446,7 +451,6 @@ end;
 function TBootstrappingGrammar.Visit__(const aNode: INode;
   const aArgs: IArray<TValue>): TValue;
 begin
-  Result := nil;
 end;
 
 end.
