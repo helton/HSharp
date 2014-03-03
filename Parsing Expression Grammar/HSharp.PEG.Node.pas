@@ -37,6 +37,7 @@ type
     FName: string;
     FText: string;
     FIndex: Integer;
+    FValue: TValue;
     FChildren: IList<INode>;
   strict protected
     { INode }
@@ -44,6 +45,8 @@ type
     function GetIndex: Integer;
     function GetName: string;
     function GetText: string;
+    function GetValue: TValue;
+    procedure SetValue(const aValue: TValue);
     { IVisitableNode }
     function Accept(const aVisitor: INodeVisitor): TValue;
   public
@@ -102,6 +105,16 @@ end;
 function TNode.GetText: string;
 begin
   Result := FText;
+end;
+
+function TNode.GetValue: TValue;
+begin
+  Result := FValue;
+end;
+
+procedure TNode.SetValue(const aValue: TValue);
+begin
+  FValue := aValue;
 end;
 
 { TRegexNode }

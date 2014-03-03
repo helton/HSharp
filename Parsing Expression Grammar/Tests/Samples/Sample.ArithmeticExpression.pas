@@ -21,13 +21,13 @@ type
 
   TArithmeticExpression = class(TGrammar, IArithmeticExpression)
   public
-    { <add> = number ("+" number)* }
-    function Visit_Add(const aNode: INode; const aArgs: IArray<TValue>): TValue;
-    { <number> = _? /[0-9]+/ _? }
-    function Visit_Number(const aNode: INode; const aArgs: IArray<TValue>): TValue;
-    { <_> = /\s+/ }
-    function Visit__(const aNode: INode; const aArgs: IArray<TValue>): TValue;
-    function GenericVisit(const aNode: INode; const aArgs: IArray<TValue>): TValue;
+    { add = number ("+" number)* }
+    function Visit_Add(const aNode: INode): TValue;
+    { number = _ /[0-9]+/ _ }
+    function Visit_Number(const aNode: INode): TValue;
+    { _ = /\s+/? }
+    function Visit__(const aNode: INode): TValue;
+    function GenericVisit(const aNode: INode): TValue;
   public
     constructor Create; overload;
     function Evaluate(const aExpression: string): Integer;
@@ -56,7 +56,7 @@ var
 
     { setup rules }
 
-    { <add> = number ("+" number)* }
+    { add = number ("+" number)* }
     Add_Rule.Expression := TSequenceExpression.Create([
       TRuleReferenceExpression.Create(Number_Rule),
       TRepeatZeroOrMoreExpression.Create(TSequenceExpression.Create([
@@ -64,14 +64,15 @@ var
         TRuleReferenceExpression.Create(Number_Rule)
       ]))
     ]);
-    { <number> = _? /[0-9]+/ _? }
+    { number = _ /[0-9]+/ _ }
     Number_Rule.Expression := TSequenceExpression.Create([
-      TRepeatOptionalExpression.Create(TRuleReferenceExpression.Create(__Rule)),
+      TRuleReferenceExpression.Create(__Rule),
       TRegexExpression.Create('[0-9]+'),
-      TRepeatOptionalExpression.Create(TRuleReferenceExpression.Create(__Rule))
+      TRuleReferenceExpression.Create(__Rule)
     ]);
-    { <_> = /\s+/ }
-    __Rule.Expression :=  TRegexExpression.Create('\s+');
+    { _ = /\s+/? }
+    __Rule.Expression :=  TRepeatOptionalExpression.Create(
+      TRegexExpression.Create('\s+'));
 
     { create rules array }
     SetLength(Rules, 3);
@@ -90,32 +91,28 @@ begin
   Result := ParseAndVisit(aExpression).AsInteger;
 end;
 
-function TArithmeticExpression.GenericVisit(const aNode: INode;
-  const aArgs: IArray<TValue>): TValue;
+function TArithmeticExpression.GenericVisit(const aNode: INode): TValue;
 begin
 end;
 
-{ <add> = number ("+" number)* }
-function TArithmeticExpression.Visit_Add(const aNode: INode;
-  const aArgs: IArray<TValue>): TValue;
+{ add = number ("+" number)* }
+function TArithmeticExpression.Visit_Add(const aNode: INode): TValue;
 var
-  Node: INode;
+  ChildNode: INode;
 begin
-  Result := aArgs[0].AsInteger;
-  for Node in aNode.Children[1].Children do
-    Result := Result.AsInteger + Node.Children[1].Text.ToInteger;
+  Result := aNode.Children[0].Value.AsInteger;
+  for ChildNode in aNode.Children[1].Children do
+    Result := Result.AsInteger + ChildNode.Children[1].Text.ToInteger;
 end;
 
-{ <number> = _? /[0-9]+/ _? }
-function TArithmeticExpression.Visit_Number(const aNode: INode;
-  const aArgs: IArray<TValue>): TValue;
+{ number = _ /[0-9]+/ _ }
+function TArithmeticExpression.Visit_Number(const aNode: INode): TValue;
 begin
   Result := aNode.Children[1].Text.ToInteger;
 end;
 
-{ <_> = /\s+/ }
-function TArithmeticExpression.Visit__(const aNode: INode;
-  const aArgs: IArray<TValue>): TValue;
+{ _ = /\s+/? }
+function TArithmeticExpression.Visit__(const aNode: INode): TValue;
 begin
 end;
 

@@ -45,27 +45,27 @@ type
 
   TBootstrappingGrammar = class(TGrammar, IBootstrappingGrammar)
   public
-{??}function Visit_rules(const aNode: INode; const aArgs: IArray<TValue>): TValue;
-{OK}function Visit_rule(const aNode: INode; const aArgs: IArray<TValue>): TValue;
-{OK}function Visit_assignment(const aNode: INode; const aArgs: IArray<TValue>): TValue;
-{OK}function Visit_literal(const aNode: INode; const aArgs: IArray<TValue>): TValue;
-    function Visit_expression(const aNode: INode; const aArgs: IArray<TValue>): TValue;
-    function Visit_or_term(const aNode: INode; const aArgs: IArray<TValue>): TValue;
-    function Visit_ored(const aNode: INode; const aArgs: IArray<TValue>): TValue;
-    function Visit_sequence(const aNode: INode; const aArgs: IArray<TValue>): TValue;
-    function Visit_negative_lookahead_term(const aNode: INode; const aArgs: IArray<TValue>): TValue;
-    function Visit_lookahead_term(const aNode: INode; const aArgs: IArray<TValue>): TValue;
-    function Visit_term(const aNode: INode; const aArgs: IArray<TValue>): TValue;
-    function Visit_quantified(const aNode: INode; const aArgs: IArray<TValue>): TValue;
-    function Visit_atom(const aNode: INode; const aArgs: IArray<TValue>): TValue;
-    function Visit_regex(const aNode: INode; const aArgs: IArray<TValue>): TValue;
-    function Visit_parenthesized(const aNode: INode; const aArgs: IArray<TValue>): TValue;
-{OK}function Visit_quantifier(const aNode: INode; const aArgs: IArray<TValue>): TValue;
-    function Visit_repetition(const aNode: INode; const aArgs: IArray<TValue>): TValue;
-    function Visit_reference(const aNode: INode; const aArgs: IArray<TValue>): TValue;
-{..}function Visit_identifier(const aNode: INode; const aArgs: IArray<TValue>): TValue;
-{OK}function Visit__(const aNode: INode; const aArgs: IArray<TValue>): TValue;
-{OK}function Visit_comment(const aNode: INode; const aArgs: IArray<TValue>): TValue;
+{??}function Visit_rules(const aNode: INode): TValue;
+{OK}function Visit_rule(const aNode: INode): TValue;
+{OK}function Visit_assignment(const aNode: INode): TValue;
+{OK}function Visit_literal(const aNode: INode): TValue;
+    function Visit_expression(const aNode: INode): TValue;
+    function Visit_or_term(const aNode: INode): TValue;
+    function Visit_ored(const aNode: INode): TValue;
+    function Visit_sequence(const aNode: INode): TValue;
+    function Visit_negative_lookahead_term(const aNode: INode): TValue;
+    function Visit_lookahead_term(const aNode: INode): TValue;
+    function Visit_term(const aNode: INode): TValue;
+    function Visit_quantified(const aNode: INode): TValue;
+    function Visit_atom(const aNode: INode): TValue;
+    function Visit_regex(const aNode: INode): TValue;
+    function Visit_parenthesized(const aNode: INode): TValue;
+{OK}function Visit_quantifier(const aNode: INode): TValue;
+    function Visit_repetition(const aNode: INode): TValue;
+    function Visit_reference(const aNode: INode): TValue;
+{..}function Visit_identifier(const aNode: INode): TValue;
+{OK}function Visit__(const aNode: INode): TValue;
+{OK}function Visit_comment(const aNode: INode): TValue;
   public
     constructor Create; overload;
     { IBootstrappingGrammar }
@@ -320,136 +320,115 @@ begin
   Result := ParseAndVisit(aGrammarText).AsType<IList<IRule>>;
 end;
 
-function TBootstrappingGrammar.Visit_assignment(const aNode: INode;
-  const aArgs: IArray<TValue>): TValue;
+function TBootstrappingGrammar.Visit_assignment(const aNode: INode): TValue;
 begin
 end;
 
-function TBootstrappingGrammar.Visit_atom(const aNode: INode;
-  const aArgs: IArray<TValue>): TValue;
+function TBootstrappingGrammar.Visit_atom(const aNode: INode): TValue;
 begin
   Result := nil;
 end;
 
-function TBootstrappingGrammar.Visit_comment(const aNode: INode;
-  const aArgs: IArray<TValue>): TValue;
+function TBootstrappingGrammar.Visit_comment(const aNode: INode): TValue;
 begin
 end;
 
-function TBootstrappingGrammar.Visit_expression(const aNode: INode;
-  const aArgs: IArray<TValue>): TValue;
+function TBootstrappingGrammar.Visit_expression(const aNode: INode): TValue;
 begin
   Result := nil;
 end;
 
-function TBootstrappingGrammar.Visit_identifier(const aNode: INode;
-  const aArgs: IArray<TValue>): TValue;
+function TBootstrappingGrammar.Visit_identifier(const aNode: INode): TValue;
 begin
   Result := aNode.Children[0].Text;
 end;
 
-function TBootstrappingGrammar.Visit_literal(const aNode: INode;
-  const aArgs: IArray<TValue>): TValue;
+function TBootstrappingGrammar.Visit_literal(const aNode: INode): TValue;
 begin
   Result := aNode.Children[0].Text;
 end;
 
-function TBootstrappingGrammar.Visit_lookahead_term(const aNode: INode;
-  const aArgs: IArray<TValue>): TValue;
+function TBootstrappingGrammar.Visit_lookahead_term(const aNode: INode): TValue;
 begin
   Result := nil;
 end;
 
-function TBootstrappingGrammar.Visit_negative_lookahead_term(const aNode: INode;
-  const aArgs: IArray<TValue>): TValue;
+function TBootstrappingGrammar.Visit_negative_lookahead_term(const aNode: INode): TValue;
 begin
   Result := nil;
 end;
 
-function TBootstrappingGrammar.Visit_ored(const aNode: INode;
-  const aArgs: IArray<TValue>): TValue;
+function TBootstrappingGrammar.Visit_ored(const aNode: INode): TValue;
 begin
   Result := nil;
 end;
 
-function TBootstrappingGrammar.Visit_or_term(const aNode: INode;
-  const aArgs: IArray<TValue>): TValue;
+function TBootstrappingGrammar.Visit_or_term(const aNode: INode): TValue;
 begin
   Result := nil;
 end;
 
-function TBootstrappingGrammar.Visit_parenthesized(const aNode: INode;
-  const aArgs: IArray<TValue>): TValue;
+function TBootstrappingGrammar.Visit_parenthesized(const aNode: INode): TValue;
 begin
   Result := nil;
 end;
 
-function TBootstrappingGrammar.Visit_quantified(const aNode: INode;
-  const aArgs: IArray<TValue>): TValue;
+function TBootstrappingGrammar.Visit_quantified(const aNode: INode): TValue;
 begin
   Result := nil;
 end;
 
-function TBootstrappingGrammar.Visit_quantifier(const aNode: INode;
-  const aArgs: IArray<TValue>): TValue;
+function TBootstrappingGrammar.Visit_quantifier(const aNode: INode): TValue;
 begin
   Result := aNode.Children[0].Text;
 end;
 
-function TBootstrappingGrammar.Visit_reference(const aNode: INode;
-  const aArgs: IArray<TValue>): TValue;
+function TBootstrappingGrammar.Visit_reference(const aNode: INode): TValue;
 begin
   Result := nil;
 end;
 
-function TBootstrappingGrammar.Visit_regex(const aNode: INode;
-  const aArgs: IArray<TValue>): TValue;
+function TBootstrappingGrammar.Visit_regex(const aNode: INode): TValue;
 begin
   Result := nil;
 end;
 
-function TBootstrappingGrammar.Visit_repetition(const aNode: INode;
-  const aArgs: IArray<TValue>): TValue;
+function TBootstrappingGrammar.Visit_repetition(const aNode: INode): TValue;
 begin
   Result := nil;
 end;
 
-function TBootstrappingGrammar.Visit_rule(const aNode: INode;
-  const aArgs: IArray<TValue>): TValue;
+function TBootstrappingGrammar.Visit_rule(const aNode: INode): TValue;
 var
   Rule: IRule;
 begin
-  Rule := TRule.Create(aArgs[0].AsString);
-//  Rule.Expression := aArgs[2].AsType<IExpression>;
+  Rule := TRule.Create(aNode.Children[0].Value.AsString);
+//  Rule.Expression := aNode.Children[2].Value.AsType<IExpression>;
   Result := TValue.From<IRule>(Rule);
 end;
 
-function TBootstrappingGrammar.Visit_rules(const aNode: INode;
-  const aArgs: IArray<TValue>): TValue;
+function TBootstrappingGrammar.Visit_rules(const aNode: INode): TValue;
 var
   FRules: IList<IRule>;
-//  Node: INode;
+  RuleNode: INode;
 begin
   FRules := Collections.CreateList<IRule>;
-//  for Node in aNode.Children[1].Children do
-//    FRules.Add(Node.Children[1].Text).AsType<IRule>;
+  for RuleNode in aNode.Children[1].Children do
+    FRules.Add(RuleNode.Value.AsType<IRule>);
   Result := TValue.From<IList<IRule>>(FRules);
 end;
 
-function TBootstrappingGrammar.Visit_sequence(const aNode: INode;
-  const aArgs: IArray<TValue>): TValue;
+function TBootstrappingGrammar.Visit_sequence(const aNode: INode): TValue;
 begin
   Result := nil;
 end;
 
-function TBootstrappingGrammar.Visit_term(const aNode: INode;
-  const aArgs: IArray<TValue>): TValue;
+function TBootstrappingGrammar.Visit_term(const aNode: INode): TValue;
 begin
   Result := nil;
 end;
 
-function TBootstrappingGrammar.Visit__(const aNode: INode;
-  const aArgs: IArray<TValue>): TValue;
+function TBootstrappingGrammar.Visit__(const aNode: INode): TValue;
 begin
 end;
 

@@ -49,11 +49,14 @@ type
     function GetIndex: Integer;
     function GetName: string;
     function GetText: string;
+    function GetValue: TValue;
+    procedure SetValue(const aValue: TValue);
     { properties }
+    property Children: IList<INode> read GetChildren;
+    property Index: Integer read GetIndex;
     property Name: string read GetName;
     property Text: string read GetText;
-    property Index: Integer read GetIndex;
-    property Children: IList<INode> read GetChildren;
+    property Value: TValue read GetValue write SetValue;
   end;
 
   IRegexNode = interface(INode)

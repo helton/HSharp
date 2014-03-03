@@ -54,7 +54,6 @@ uses
   Vcl.Dialogs, {TODO -oHelton -cRemove : Remove!}
   System.StrUtils,
   System.SysUtils,
-  HSharp.Core.Arrays,
   HSharp.Core.ArrayString,
   HSharp.Core.Rtti;
 
@@ -71,14 +70,11 @@ end;
 function TGrammarNodeVisitor.Visit(const aNode: INode): TValue;
 var
   Child: INode;
-  ChildrenResults: IArray<TValue>;
 
   function GetResultFromInvokedMethod(const aMethod: TRttiMethod): TValue;
   begin
     Result := aMethod.Invoke(TObject(FGrammar),
-                             [TValue.From<INode>(aNode),
-                              TValue.From<IArray<TValue>>(
-                                ChildrenResults)]).AsType<TValue>;
+                             [TValue.From<INode>(aNode)]).AsType<TValue>;
   end;
 
   function GenericVisitCall: TValue;
@@ -95,11 +91,10 @@ var
   Method: TRttiMethod;
 begin
   Result := nil;
-  ChildrenResults := TArray<TValue>.Create;
   if Assigned(aNode.Children) then
   begin
     for Child in aNode.Children do
-      ChildrenResults.Add((Child as IVisitableNode).Accept(Self)); {TODO -oHelton -cQuestion : If is empty, add TValue.From<String>(Child.Text) ?}
+      Child.Value := (Child as IVisitableNode).Accept(Self); {TODO -oHelton -cQuestion : If is empty, add TValue.From<String>(Child.Text) ?}
   end;
   if not aNode.Name.IsEmpty then
   begin
@@ -110,6 +105,7 @@ begin
   end
   else
     Result := GenericVisitCall;
+  aNode.Value := Result;
 end;
 
 { TPrinterNodeVisitor }
