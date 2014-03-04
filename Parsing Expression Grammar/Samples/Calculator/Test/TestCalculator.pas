@@ -26,7 +26,6 @@ interface
 
 uses
   TestFramework,
-  HSharp.Core.Lazy,
   Calc;
 
 type
@@ -34,13 +33,16 @@ type
   published
     procedure TestAddAndSubtraction;
     procedure TestMultiplicationAndDivision;
-    procedure TestParenthesizedExpressions;
+    procedure TestParenthesizedExpression;
     procedure TestNegateExpression;
     procedure TestFloatingPointNumbers;
     procedure TestGeneral;
   end;
 
 implementation
+
+uses
+  HSharp.Core.Lazy;
 
 var
   Calc: Lazy<ICalc, TCalc>;
@@ -83,7 +85,7 @@ begin
   CheckEquals(-4 * 2, Calc.Instance.Evaluate('-4 * 2'));
 end;
 
-procedure TestCalc.TestParenthesizedExpressions;
+procedure TestCalc.TestParenthesizedExpression;
 begin
   CheckEquals(6 * (2 + 4) / 2, Calc.Instance.Evaluate('6 * (2 + 4) / 2'));
 end;

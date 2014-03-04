@@ -178,17 +178,6 @@ type
     function AsString: string; override;
   end;
 
-  // An expression that succeeds whether or not the contained one does
-  // If the contained expression succeeds, it goes ahead and consumes what it
-  // consumes. Otherwise, it consumes nothing.
-  TRepeatOptionalExpression = class(TRepeatRangeExpression)
-  strict protected
-    function ApplyExpression(const aContext: IContext): INode; override;
-  public
-    constructor Create(const aExpression: IExpression); reintroduce;
-    function AsString: string; override;
-  end;
-
   // An expression wrapper like the repetition {times} in regexes.
   TRepeatExactlyExpression = class(TRepeatRangeExpression)
   strict private
@@ -202,6 +191,15 @@ type
   TRepeatUpToExpression = class(TRepeatRangeExpression)
   public
     constructor Create(const aExpression: IExpression; aMax: Integer); reintroduce;
+  end;
+
+  // An expression that succeeds whether or not the contained one does
+  // If the contained expression succeeds, it goes ahead and consumes what it
+  // consumes. Otherwise, it consumes nothing.
+  TOptionalExpression = class(TRepeatUpToExpression)
+  public
+    constructor Create(const aExpression: IExpression); reintroduce;
+    function AsString: string; override;
   end;
 
   {$ENDREGION}
@@ -617,25 +615,16 @@ begin
     raise EArgumentException.Create('Min should be positive');
 end;
 
-{ TRepeatOptionalExpression }
+{ TOptionalExpression }
 
-function TRepeatOptionalExpression.ApplyExpression(
-  const aContext: IContext): INode;
-var
-  Node: INode;
-begin
-  Node := inherited;
-  Result := TNode.Create(Name, Node.Text, Node.Index, nil); {TODO -oHelton -cQuestion : Is is right?}
-end;
-
-function TRepeatOptionalExpression.AsString: string;
+function TOptionalExpression.AsString: string;
 begin
   Result := Expression.AsString + '?';
 end;
 
-constructor TRepeatOptionalExpression.Create(const aExpression: IExpression);
+constructor TOptionalExpression.Create(const aExpression: IExpression);
 begin
-  inherited Create(aExpression, 0, 1);
+  inherited Create(aExpression, 1);
 end;
 
 { TRepeatUpToExpression }

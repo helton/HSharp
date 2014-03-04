@@ -49,28 +49,29 @@ type
   strict protected
     function GetRuleByName(const aRuleName: string): IRule; //to solve the lazy reference problem
   public
-{??}function Visit_rules(const aNode: INode): TValue;
-{OK}function Visit_rule(const aNode: INode): TValue;
+{OK}function Visit__(const aNode: INode): TValue;
 {OK}function Visit_assignment(const aNode: INode): TValue;
-{OK}function Visit_literal(const aNode: INode): TValue;
+{OK}function Visit_atom(const aNode: INode): TValue;
+{OK}function Visit_comment(const aNode: INode): TValue;
 {OK}function Visit_expression(const aNode: INode): TValue;
-{OK}function Visit_expression_label(const aNode: INode): TValue;
+{OK}function Visit_factor(const aNode: INode): TValue;
+{OK}function Visit_identifier(const aNode: INode): TValue;
+{OK}function Visit_literal(const aNode: INode): TValue;
+{OK}function Visit_lookahead_term(const aNode: INode): TValue;
+{OK}function Visit_negative_lookahead_term(const aNode: INode): TValue;
 {OK}function Visit_or_term(const aNode: INode): TValue;
 {OK}function Visit_ored(const aNode: INode): TValue;
-{OK}function Visit_sequence(const aNode: INode): TValue;
-{OK}function Visit_negative_lookahead_term(const aNode: INode): TValue;
-{OK}function Visit_lookahead_term(const aNode: INode): TValue;
-{OK}function Visit_term(const aNode: INode): TValue;
-{OK}function Visit_quantified(const aNode: INode): TValue;
-{OK}function Visit_atom(const aNode: INode): TValue;
-{OK}function Visit_regex(const aNode: INode): TValue;
 {OK}function Visit_parenthesized(const aNode: INode): TValue;
+{OK}function Visit_quantified(const aNode: INode): TValue;
 {OK}function Visit_quantifier(const aNode: INode): TValue;
-    function Visit_repetition(const aNode: INode): TValue;
 {OK}function Visit_reference(const aNode: INode): TValue;
-{OK}function Visit_identifier(const aNode: INode): TValue;
-{OK}function Visit__(const aNode: INode): TValue;
-{OK}function Visit_comment(const aNode: INode): TValue;
+{OK}function Visit_regex(const aNode: INode): TValue;
+{..}function Visit_repetition(const aNode: INode): TValue;
+{OK}function Visit_rule(const aNode: INode): TValue;
+{OK}function Visit_rules(const aNode: INode): TValue;
+{OK}function Visit_sequence(const aNode: INode): TValue;
+{OK}function Visit_term(const aNode: INode): TValue;
+{OK}function Visit_term_label(const aNode: INode): TValue;
   public
     constructor Create; overload;
     { IBootstrappingGrammar }
@@ -91,73 +92,100 @@ uses
 constructor TBootstrappingGrammar.Create;
 var
   RulesList: IList<IRule>;
-  rules,
-  rule,
+  _,
   assignment,
-  literal,
+  atom,
+  comment,
   expression,
-  expression_label,
+  factor,
+  identifier,
+  literal,
+  lookahead_term,
+  negative_lookahead_term,
   or_term,
   ored,
-  sequence,
-  negative_lookahead_term,
-  lookahead_term,
-  term,
-  quantified,
-  atom,
-  regex,
   parenthesized,
+  quantified,
   quantifier,
-  repetition,
   reference,
-  identifier,
-  _,
-  comment: IRule;
+  regex,
+  repetition,
+  rule,
+  rules,
+  sequence,
+  term,
+  term_label: IRule;
 
   procedure CreateRules;
   begin
-    rules                   := TRule.Create('rules');
-    rule                    := TRule.Create('rule');
+    _                       := TRule.Create('_');
     assignment              := TRule.Create('assignment');
-    literal                 := TRule.Create('literal');
+    atom                    := TRule.Create('atom');
+    comment                 := TRule.Create('comment');
     expression              := TRule.Create('expression');
-    expression_label        := TRule.Create('expression_label');
+    factor                  := TRule.Create('factor');
+    identifier              := TRule.Create('identifier');
+    literal                 := TRule.Create('literal');
+    lookahead_term          := TRule.Create('lookahead_term');
+    negative_lookahead_term := TRule.Create('negative_lookahead_term');
     or_term                 := TRule.Create('or_term');
     ored                    := TRule.Create('ored');
-    sequence                := TRule.Create('sequence');
-    negative_lookahead_term := TRule.Create('negative_lookahead_term');
-    lookahead_term          := TRule.Create('lookahead_term');
-    term                    := TRule.Create('term');
-    quantified              := TRule.Create('quantified');
-    atom                    := TRule.Create('atom');
-    regex                   := TRule.Create('regex');
     parenthesized           := TRule.Create('parenthesized');
+    quantified              := TRule.Create('quantified');
     quantifier              := TRule.Create('quantifier');
-    repetition              := TRule.Create('repetition');
     reference               := TRule.Create('reference');
-    identifier              := TRule.Create('identifier');
-    _                       := TRule.Create('_');
-    comment                 := TRule.Create('comment');
+    regex                   := TRule.Create('regex');
+    repetition              := TRule.Create('repetition');
+    rule                    := TRule.Create('rule');
+    rules                   := TRule.Create('rules');
+    sequence                := TRule.Create('sequence');
+    term                    := TRule.Create('term');
+    term_label              := TRule.Create('term_label');
   end;
 
   procedure SetupRules;
   begin
-    //rules = _ rule+
-    rules.Expression := TSequenceExpression.Create(
-      [TRuleReferenceExpression.Create(_),
-       TRepeatOneOrMoreExpression.Create(TRuleReferenceExpression.Create(rule))
-      ]
-    );
-    //rule = identifier assignment expression
-    rule.Expression := TSequenceExpression.Create(
-      [TRuleReferenceExpression.Create(identifier),
-       TRuleReferenceExpression.Create(assignment),
-       TRuleReferenceExpression.Create(expression)
+    //_ = /\s+/? | comment
+    _.Expression := TOneOfExpression.Create(
+      [TOptionalExpression.Create(TRegexExpression.Create('\s+')),
+       TRuleReferenceExpression.Create(comment)
       ]
     );
     //assignment = "=" _
     assignment.Expression := TSequenceExpression.Create(
       [TLiteralExpression.Create('='),
+       TRuleReferenceExpression.Create(_)
+      ]
+    );
+    //atom = reference | literal | regex | parenthesized
+    atom.Expression := TOneOfExpression.Create(
+      [TRuleReferenceExpression.Create(reference),
+       TRuleReferenceExpression.Create(literal),
+       TRuleReferenceExpression.Create(regex),
+       TRuleReferenceExpression.Create(parenthesized)
+      ]
+    );
+    //comment = /#.*?(?:\r\n|$)/
+    comment.Expression := TRegexExpression.Create('#.*?(?:' + sLineBreak + '|$)');
+    //expression = ored | sequence | term
+    expression.Expression := TOneOfExpression.Create(
+      [TRuleReferenceExpression.Create(ored),
+       TRuleReferenceExpression.Create(sequence),
+       TRuleReferenceExpression.Create(term)
+      ]
+    );
+    //factor = lookahead_term | negative_lookahead_term | quantified | repetition | atom
+    factor.Expression := TOneOfExpression.Create(
+      [TRuleReferenceExpression.Create(lookahead_term),
+       TRuleReferenceExpression.Create(negative_lookahead_term),
+       TRuleReferenceExpression.Create(quantified),
+       TRuleReferenceExpression.Create(repetition),
+       TRuleReferenceExpression.Create(atom)
+      ]
+    );
+    //identifier = /[a-z_][a-z0-9_]*/i _
+    identifier.Expression := TSequenceExpression.Create(
+      [TRegexExpression.Create('[a-z_][a-z0-9_]*', [TRegExOption.roIgnoreCase]),
        TRuleReferenceExpression.Create(_)
       ]
     );
@@ -167,22 +195,18 @@ var
        TRuleReferenceExpression.Create(_)
       ]
     );
-    //expression = expression_label? (ored | sequence | term)
-    expression.Expression := TSequenceExpression.Create(
-      [TRepeatOptionalExpression.Create(
-        TRuleReferenceExpression.Create(expression_label)),
-       TOneOfExpression.Create(
-        [TRuleReferenceExpression.Create(ored),
-         TRuleReferenceExpression.Create(sequence),
-         TRuleReferenceExpression.Create(term)
-        ]
-       )
+    //lookahead_term = "&" term _
+    lookahead_term.Expression := TSequenceExpression.Create(
+      [TLiteralExpression.Create('&'),
+       TRuleReferenceExpression.Create(term),
+       TRuleReferenceExpression.Create(_)
       ]
     );
-    //expression_label = identifier ":"
-    expression_label.Expression := TSequenceExpression.Create(
-      [TRuleReferenceExpression.Create(identifier),
-       TLiteralExpression.Create(':')
+    //negative_lookahead_term = "!" term _
+    negative_lookahead_term.Expression := TSequenceExpression.Create(
+      [TLiteralExpression.Create('!'),
+       TRuleReferenceExpression.Create(term),
+       TRuleReferenceExpression.Create(_)
       ]
     );
     //or_term = "|" _ term
@@ -200,58 +224,6 @@ var
        )
       ]
     );
-    //sequence = term term+
-    sequence.Expression := TSequenceExpression.Create(
-      [TRuleReferenceExpression.Create(term),
-       TRepeatOneOrMoreExpression.Create(
-         TRuleReferenceExpression.Create(term)
-       )
-      ]
-    );
-    //negative_lookahead_term = "!" term _
-    negative_lookahead_term.Expression := TSequenceExpression.Create(
-      [TLiteralExpression.Create('!'),
-       TRuleReferenceExpression.Create(term),
-       TRuleReferenceExpression.Create(_)
-      ]
-    );
-    //lookahead_term = "&" term _
-    lookahead_term.Expression := TSequenceExpression.Create(
-      [TLiteralExpression.Create('&'),
-       TRuleReferenceExpression.Create(term),
-       TRuleReferenceExpression.Create(_)
-      ]
-    );
-    //term = lookahead_term | negative_lookahead_term | quantified | repetition | atom
-    term.Expression := TOneOfExpression.Create(
-      [TRuleReferenceExpression.Create(lookahead_term),
-       TRuleReferenceExpression.Create(negative_lookahead_term),
-       TRuleReferenceExpression.Create(quantified),
-       TRuleReferenceExpression.Create(repetition),
-       TRuleReferenceExpression.Create(atom)
-      ]
-    );
-    //quantified = atom quantifier
-    quantified.Expression := TSequenceExpression.Create(
-      [TRuleReferenceExpression.Create(atom),
-       TRuleReferenceExpression.Create(quantifier)
-      ]
-    );
-    //atom = reference | literal | regex | parenthesized
-    atom.Expression := TOneOfExpression.Create(
-      [TRuleReferenceExpression.Create(reference),
-       TRuleReferenceExpression.Create(literal),
-       TRuleReferenceExpression.Create(regex),
-       TRuleReferenceExpression.Create(parenthesized)
-      ]
-    );
-    //regex = /\/.*?[^\\]\// /[imesp]*/i? _
-    regex.Expression := TSequenceExpression.Create(
-      [TRegexExpression.Create('\/.*?[^\\]\/'),
-       TRepeatOptionalExpression.Create(TRegexExpression.Create('[imesp]*', [TRegExOption.roIgnoreCase])),
-       TRuleReferenceExpression.Create(_)
-      ]
-    );
     //parenthesized = "(" _ expression ")" _
     parenthesized.Expression := TSequenceExpression.Create(
       [TLiteralExpression.Create('('),
@@ -261,16 +233,15 @@ var
        TRuleReferenceExpression.Create(_)
       ]
     );
+    //quantified = atom quantifier
+    quantified.Expression := TSequenceExpression.Create(
+      [TRuleReferenceExpression.Create(atom),
+       TRuleReferenceExpression.Create(quantifier)
+      ]
+    );
     //quantifier = /[*+?]/ _
     quantifier.Expression := TSequenceExpression.Create(
       [TRegexExpression.Create('[*+?]'),
-       TRuleReferenceExpression.Create(_)
-      ]
-    );
-    //repetition = atom /{[0-9]+(\s*,\s*([0-9]+)?)?}/ _
-    repetition.Expression := TSequenceExpression.Create(
-      [TRuleReferenceExpression.Create(atom),
-       TRegexExpression.Create('{[0-9]+(\s*,\s*([0-9]+)?)?}'),
        TRuleReferenceExpression.Create(_)
       ]
     );
@@ -282,46 +253,82 @@ var
        )
       ]
     );
-    //identifier = /[a-z_][a-z0-9_]*/i _
-    identifier.Expression := TSequenceExpression.Create(
-      [TRegexExpression.Create('[a-z_][a-z0-9_]*', [TRegExOption.roIgnoreCase]),
+    //regex = /\/.*?[^\\]\// /[imesp]*/i? _
+    regex.Expression := TSequenceExpression.Create(
+      [TRegexExpression.Create('\/.*?[^\\]\/'),
+       TOptionalExpression.Create(TRegexExpression.Create('[imesp]*', [TRegExOption.roIgnoreCase])),
        TRuleReferenceExpression.Create(_)
       ]
     );
-    //_ = /\s+/? | comment
-    _.Expression := TOneOfExpression.Create(
-      [TRepeatOptionalExpression.Create(TRegexExpression.Create('\s+')),
-       TRuleReferenceExpression.Create(comment)
+    //repetition = atom /{[0-9]+(\s*,\s*([0-9]+)?)?}/ _
+    repetition.Expression := TSequenceExpression.Create(
+      [TRuleReferenceExpression.Create(atom),
+       TRegexExpression.Create('{[0-9]+(\s*,\s*([0-9]+)?)?}'),
+       TRuleReferenceExpression.Create(_)
       ]
     );
-    //comment = /#.*?(?:\r\n|$)/
-    comment.Expression := TRegexExpression.Create('#.*?(?:' + sLineBreak + '|$)');
+    //rule = identifier assignment expression
+    rule.Expression := TSequenceExpression.Create(
+      [TRuleReferenceExpression.Create(identifier),
+       TRuleReferenceExpression.Create(assignment),
+       TRuleReferenceExpression.Create(expression)
+      ]
+    );
+    //rules = _ rule+
+    rules.Expression := TSequenceExpression.Create(
+      [TRuleReferenceExpression.Create(_),
+       TRepeatOneOrMoreExpression.Create(TRuleReferenceExpression.Create(rule))
+      ]
+    );
+    //sequence = term term+
+    sequence.Expression := TSequenceExpression.Create(
+      [TRuleReferenceExpression.Create(term),
+       TRepeatOneOrMoreExpression.Create(
+         TRuleReferenceExpression.Create(term)
+       )
+      ]
+    );
+    //term = term_label factor
+    term.Expression := TSequenceExpression.Create(
+      [TRuleReferenceExpression.Create(term_label),
+       TRuleReferenceExpression.Create(factor)
+      ]
+    );
+    //term_label = (identifier ":")?
+    term_label.Expression := TOptionalExpression.Create(
+      TSequenceExpression.Create(
+        [TRuleReferenceExpression.Create(identifier),
+         TLiteralExpression.Create(':')
+        ]
+      )
+    );
   end;
 
   procedure CreateRulesArray;
   begin
-    RulesList.Add(rules);
-    RulesList.Add(rule);
+    RulesList.Add(_);
     RulesList.Add(assignment);
-    RulesList.Add(literal);
+    RulesList.Add(atom);
+    RulesList.Add(comment);
     RulesList.Add(expression);
-    RulesList.Add(expression_label);
+    RulesList.Add(factor);
+    RulesList.Add(identifier);
+    RulesList.Add(literal);
+    RulesList.Add(lookahead_term);
+    RulesList.Add(negative_lookahead_term);
     RulesList.Add(or_term);
     RulesList.Add(ored);
-    RulesList.Add(sequence);
-    RulesList.Add(negative_lookahead_term);
-    RulesList.Add(lookahead_term);
-    RulesList.Add(term);
-    RulesList.Add(quantified);
-    RulesList.Add(atom);
-    RulesList.Add(regex);
     RulesList.Add(parenthesized);
+    RulesList.Add(quantified);
     RulesList.Add(quantifier);
-    RulesList.Add(repetition);
     RulesList.Add(reference);
-    RulesList.Add(identifier);
-    RulesList.Add(_);
-    RulesList.Add(comment);
+    RulesList.Add(regex);
+    RulesList.Add(repetition);
+    RulesList.Add(rule);
+    RulesList.Add(rules);
+    RulesList.Add(sequence);
+    RulesList.Add(term);
+    RulesList.Add(term_label);
   end;
 
 begin
@@ -329,7 +336,7 @@ begin
   CreateRules;
   SetupRules;
   CreateRulesArray;
-  inherited Create(RulesList);
+  inherited Create(RulesList, rules);
   FRulesMap := Collections.CreateDictionary<string, IRule>;
 end;
 
@@ -343,19 +350,7 @@ begin
 end;
 
 function TBootstrappingGrammar.GetRules(const aGrammarText: string): IList<IRule>;
-
-//  function GetPrintedTreeText(const aTree: INode): string;
-//  var
-//    PrinterNodeVisitor: INodeVisitor;
-//    Value: TValue;
-//  begin
-//    PrinterNodeVisitor := TPrinterNodeVisitor.Create;
-//    Value := (aTree as IVisitableNode).Accept(PrinterNodeVisitor);
-//    Result := Value.AsString;
-//  end;
-
 begin
-//  ShowMessage(GetPrintedTreeText(Parse(aGrammarText)));
   Result := ParseAndVisit(aGrammarText).AsType<IList<IRule>>;
 end;
 
@@ -374,15 +369,12 @@ end;
 
 function TBootstrappingGrammar.Visit_expression(const aNode: INode): TValue;
 begin
-  Result := aNode.Children[1].Children[0].Value;
-  if not aNode.Children[0].Value.AsString.IsEmpty then
-    Result.AsType<IExpression>.Name := aNode.Children[0].Value.AsString;
+  Result := aNode.Children[0].Value;
 end;
 
-function TBootstrappingGrammar.Visit_expression_label(
-  const aNode: INode): TValue;
+function TBootstrappingGrammar.Visit_factor(const aNode: INode): TValue;
 begin
-  Result := aNode.Children[0].Text;
+  Result := aNode.Children[0].Value;
 end;
 
 function TBootstrappingGrammar.Visit_identifier(const aNode: INode): TValue;
@@ -451,7 +443,7 @@ begin
   Quantifier := aNode.Children[1].Children[0].Text;
   Atom := aNode.Children[0].Value.AsType<IExpression>;
   if Quantifier = '?' then
-    Result := TValue.From<IExpression>(TRepeatOptionalExpression.Create(Atom))
+    Result := TValue.From<IExpression>(TOptionalExpression.Create(Atom))
   else if Quantifier = '*' then
     Result := TValue.From<IExpression>(TRepeatZeroOrMoreExpression.Create(Atom))
   else if Quantifier = '+' then
@@ -540,8 +532,21 @@ begin
 end;
 
 function TBootstrappingGrammar.Visit_term(const aNode: INode): TValue;
+var
+  Expression: IExpression;
 begin
-  Result := aNode.Children[0].Value;
+  Expression := aNode.Children['factor'].Value.AsType<IExpression>;
+  if not aNode.Children['term_label'].Value.IsEmpty then
+    Expression.Name := aNode.Children['term_label'].Value.AsString;
+  Result := TValue.From<IExpression>(Expression);
+end;
+
+function TBootstrappingGrammar.Visit_term_label(
+  const aNode: INode): TValue;
+begin
+  Result := nil;
+  if Assigned(aNode.Children) then
+    Result := aNode.Children[0].Children['identifier'].Text;
 end;
 
 function TBootstrappingGrammar.Visit__(const aNode: INode): TValue;

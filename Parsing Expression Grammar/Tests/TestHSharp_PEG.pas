@@ -67,7 +67,7 @@ type
     procedure OneOfExpression_ShouldBeMatchTheFirstValidExpression;
     procedure LookaheadExpression_ShouldntConsumeText;
     procedure NegativeLookaheadExpression_ShouldntConsumeTextAndMatchIfExpressionDoesntMatch;
-    procedure RepeatOptionalExpression_ShouldMatchCorrectly;
+    procedure OptionalExpression_ShouldMatchCorrectly;
     procedure RepeatZeroOrMoreExpression_ShouldMatchCorrectly;
     procedure RepeatOneOrMoreExpression_ShouldMatchCorrectly;
     procedure RepeatRangeExpression_ShouldMatchCorrectly;
@@ -99,7 +99,7 @@ type
     procedure TestNodeRepeatRangeExpression;
     procedure TestNodeRepeatZeroOrMoreExpression;
     procedure TestNodeRepeatOneOrMoreExpression;
-    procedure TestNodeRepeatOptionalExpression;
+    procedure TestNodeOptionalExpression;
     procedure TestNodeRepeatExactlyExpression;
     procedure TestNodeRepeatUpToExpression;
 //    procedure TestNodeRuleReferenceExpression;
@@ -346,13 +346,13 @@ begin
     'numbers');
 end;
 
-procedure TestExpression.RepeatOptionalExpression_ShouldMatchCorrectly;
+procedure TestExpression.OptionalExpression_ShouldMatchCorrectly;
 var
   RepeatOpt: IExpression;
   Context: IContext;
 begin
   Context := TContext.Create('original text 0123456789');
-  RepeatOpt := TRepeatOptionalExpression.Create(TRegexExpression.Create('[0-9]+'));
+  RepeatOpt := TOptionalExpression.Create(TRegexExpression.Create('[0-9]+'));
   CheckTrue(RepeatOpt.IsMatch(Context)); //won't match, but it's optional and will return true
   RepeatOpt.Match(Context);
   CheckEquals('original text 0123456789', Context.Text,
@@ -360,7 +360,7 @@ begin
               'text');
 
   Context := TContext.Create('0123456789 original text');
-  RepeatOpt := TRepeatOptionalExpression.Create(TRegexExpression.Create('[0-9]+'));
+  RepeatOpt := TOptionalExpression.Create(TRegexExpression.Create('[0-9]+'));
   CheckTrue(RepeatOpt.IsMatch(Context)); //will match, and will return true
   RepeatOpt.Match(Context);
   CheckEquals(' original text', Context.Text,
@@ -447,7 +447,7 @@ begin
      TLiteralExpression.Create(' '),
      TRepeatZeroOrMoreExpression.Create(TLiteralExpression.Create('text that will be repeated')),
      TRepeatOneOrMoreExpression.Create(TLiteralExpression.Create('text that will be repeated')),
-     TRepeatOptionalExpression.Create(TLiteralExpression.Create('text that will be repeated')),
+     TOptionalExpression.Create(TLiteralExpression.Create('text that will be repeated')),
      TRepeatAtLeastExpression.Create(TLiteralExpression.Create('text that will be repeated'), 2),
      TRepeatRangeExpression.Create(TLiteralExpression.Create('text that will be repeated'), 3, 8),
      TRepeatExactlyExpression.Create(TLiteralExpression.Create('text that will be repeated'), 7),
@@ -1667,21 +1667,21 @@ begin
   CheckEquals(19, Node.Children[2].Index);
 end;
 
-procedure TestNode.TestNodeRepeatOptionalExpression;
+procedure TestNode.TestNodeOptionalExpression;
 var
   Exp: IExpression;
   Context: IContext;
   Node: INode;
 begin
   Context := TContext.Create('original text 0123456789');
-  Exp := TRepeatOptionalExpression.Create(TRegexExpression.Create('[0-9]+'));
+  Exp := TOptionalExpression.Create(TRegexExpression.Create('[0-9]+'));
   Node := Exp.Match(Context);
   CheckEquals('', Node.Text);
   CheckEquals(0, Node.Index);
   CheckNull(Node.Children);
 
   Context := TContext.Create('0123456789 original text');
-  Exp := TRepeatOptionalExpression.Create(TRegexExpression.Create('[0-9]+'));
+  Exp := TOptionalExpression.Create(TRegexExpression.Create('[0-9]+'));
   Node := Exp.Match(Context);
   CheckEquals('0123456789', Node.Text);
   CheckEquals(0, Node.Index);

@@ -18,19 +18,19 @@ type
 
   TCalc = class(TGrammar, ICalc)
   public
-    [Rule('expression = _ "-"? term ( addOp term )*')]
+    [Rule('expression = _ negate:"-"? term term_list:( addOp term )*')]
     function Visit_Expression(const aNode: INode): TValue;
-    [Rule('term = factor ( mulOp factor )*')]
+    [Rule('term = factor factor_list:( mulOp factor )*')]
     function Visit_Term(const aNode: INode): TValue;
     [Rule('factor = parenthesizedExp | number')]
     function Visit_Factor(const aNode: INode): TValue;
     [Rule('parenthesizedExp = "(" _ expression ")" _')]
     function Visit_ParenthesizedExp(const aNode: INode): TValue;
-    [Rule('addOp = ("+"|"-") _')]
+    [Rule('addOp = op:("+"|"-") _')]
     function Visit_AddOp(const aNode: INode): TValue;
-    [Rule('mulOp = ("*"|"/") _')]
+    [Rule('mulOp = op:("*"|"/") _')]
     function Visit_MulOp(const aNode: INode): TValue;
-    [Rule('number = n:/[0-9]*\.?[0-9]+(e[-+]?[0-9]+)?/ _')]
+    [Rule('number = num:/[0-9]*\.?[0-9]+(e[-+]?[0-9]+)?/ _')]
     function Visit_Number(const aNode: INode): TValue;
     [Rule('_ = /\s+/?')]
     function Visit__(const aNode: INode): TValue;
@@ -55,41 +55,41 @@ end;
 
 function TCalc.Visit_AddOp(const aNode: INode): TValue;
 begin
-  Result := aNode.Children[0].Text;
+  Result := aNode.Children['op'].Text;
 end;
 
 function TCalc.Visit_Expression(const aNode: INode): TValue;
 var
   ChildNode: INode;
 begin
-  Result := aNode.Children[2].Value.AsExtended;
-  if Assigned(aNode.Children[3].Children) then
+  Result := aNode.Children['term'].Value.AsExtended;
+  if Assigned(aNode.Children['term_list'].Children) then
   begin
-    for ChildNode in aNode.Children[3].Children do
+    for ChildNode in aNode.Children['term_list'].Children do
     begin
-      if ChildNode.Children[0].Children[0].Text = '+' then
-        Result := Result.AsExtended + ChildNode.Children[1].Value.AsExtended
+      if ChildNode.Children['addOp'].Value.AsString = '+' then
+        Result := Result.AsExtended + ChildNode.Children['term'].Value.AsExtended
       else
-        Result := Result.AsExtended - ChildNode.Children[1].Value.AsExtended;
+        Result := Result.AsExtended - ChildNode.Children['term'].Value.AsExtended;
     end;
   end;
-  if not aNode.Children[1].Text.IsEmpty then
+  if not aNode.Children['negate'].Text.IsEmpty then
     Result := -Result.AsExtended;
 end;
 
 function TCalc.Visit_Factor(const aNode: INode): TValue;
 begin
-  Result := aNode.Children[0].Value.AsExtended;
+  Result := aNode.Children.First.Value.AsExtended;
 end;
 
 function TCalc.Visit_MulOp(const aNode: INode): TValue;
 begin
-  Result := aNode.Children[0].Text;
+  Result := aNode.Children['op'].Text;
 end;
 
 function TCalc.Visit_Number(const aNode: INode): TValue;
 begin
-  Result := aNode.Children[0].Text.Replace('.', ',').ToExtended;
+  Result := aNode.Children['num'].Text.Replace('.', ',').ToExtended;
 end;
 
 function TCalc.Visit_ParenthesizedExp(const aNode: INode): TValue;
@@ -101,15 +101,15 @@ function TCalc.Visit_Term(const aNode: INode): TValue;
 var
   ChildNode: INode;
 begin
-  Result := aNode.Children[0].Value.AsExtended;
-  if Assigned(aNode.Children[1].Children) then
+  Result := aNode.Children['factor'].Value.AsExtended;
+  if Assigned(aNode.Children['factor_list'].Children) then
   begin
-    for ChildNode in aNode.Children[1].Children do
+    for ChildNode in aNode.Children['factor_list'].Children do
     begin
-      if ChildNode.Children[0].Children[0].Text = '*' then
-        Result := Result.AsExtended * ChildNode.Children[1].Value.AsExtended
+      if ChildNode.Children['mulOp'].Value.AsString = '*' then
+        Result := Result.AsExtended * ChildNode.Children['factor'].Value.AsExtended
       else
-        Result := Result.AsExtended / ChildNode.Children[1].Value.AsExtended;
+        Result := Result.AsExtended / ChildNode.Children['factor'].Value.AsExtended;
     end;
   end;
 end;
