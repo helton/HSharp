@@ -59,12 +59,12 @@ end;
 
 function TBaseInterfacedStack<T>._AddRef: Integer;
 begin
-  Result := Internal_AddRef(FRefCount);
+  Result := Internal_AddRef(Self, FRefCount);
 end;
 
 function TBaseInterfacedStack<T>._Release: Integer;
 begin
-  Result := Internal_Release(FRefCount, TObject(Self));
+  Result := Internal_Release(Self, FRefCount);
 end;
 
 { TInterfacedStackInternal<T> }

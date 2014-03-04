@@ -62,12 +62,12 @@ end;
 
 function TBaseInterfacedDictionary<TKey,TValue>._AddRef: Integer;
 begin
-  Result := Internal_AddRef(FRefCount);
+  Result := Internal_AddRef(Self, FRefCount);
 end;
 
 function TBaseInterfacedDictionary<TKey,TValue>._Release: Integer;
 begin
-  Result := Internal_Release(FRefCount, TObject(Self));
+  Result := Internal_Release(Self, FRefCount);
 end;
 
 { TInterfacedDictionaryInternal<TKey, TValue> }
