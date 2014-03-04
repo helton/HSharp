@@ -30,29 +30,19 @@ uses
   HSharp.Collections.Interfaces;
 
 type
-  INode = interface;
-
-  INodeVisitor = interface
-    ['{EF39DA2D-7849-4C72-92C9-915AEF6848C4}']
-    function Visit(const aNode: INode): TValue;
-  end;
-
-  IVisitableNode = interface
-    ['{1D7B2F86-CD22-4299-8F24-982B32150B99}']
-    function Accept(const aVisitor: INodeVisitor): TValue;
-  end;
+  INodeList = interface;
 
   INode = interface
     ['{7F8983C7-D49A-4B8F-9696-B1EA19909452}']
     { property accessors }
-    function GetChildren: IList<INode>;
+    function GetChildren: INodeList;
     function GetIndex: Integer;
     function GetName: string;
     function GetText: string;
     function GetValue: TValue;
     procedure SetValue(const aValue: TValue);
     { properties }
-    property Children: IList<INode> read GetChildren;
+    property Children: INodeList read GetChildren;
     property Index: Integer read GetIndex;
     property Name: string read GetName;
     property Text: string read GetText;
@@ -65,6 +55,22 @@ type
     function GetMatch: TMatch;
     { properties }
     property Match: TMatch read GetMatch;
+  end;
+
+  INodeList = interface(IList<INode>)
+    ['{30E01CE3-D1CC-4EAE-9E9A-16C7020118B8}']
+    function GetItemById(const aId: TValue): INode;
+    property ItemById[const aId: TValue]: INode read GetItemById; default;
+  end;
+
+  INodeVisitor = interface
+    ['{EF39DA2D-7849-4C72-92C9-915AEF6848C4}']
+    function Visit(const aNode: INode): TValue;
+  end;
+
+  IVisitableNode = interface
+    ['{1D7B2F86-CD22-4299-8F24-982B32150B99}']
+    function Accept(const aVisitor: INodeVisitor): TValue;
   end;
 
 implementation

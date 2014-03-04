@@ -350,14 +350,14 @@ function TSequenceExpression.ApplyExpression(
 var
   Expression: IExpression;
   PreviousIndex: Integer;
-  Children: IList<INode>;
+  Children: INodeList;
   ChildNode: INode;
   FullText: string;
 begin
   Result := nil;
   PreviousIndex := aContext.Index;
   FullText := '';
-  Children := Collections.CreateList<INode>;
+  Children := TNodeList.Create;
   for Expression in Expressions do
   begin
     ChildNode := Expression.Match(aContext);
@@ -389,12 +389,12 @@ function TOneOfExpression.ApplyExpression(
   const aContext: IContext): INode;
 var
   Expression: IExpression;
-  Children: IList<INode>;
+  Children: INodeList;
   PreviousIndex: Integer;
 begin
   Result := nil;
   PreviousIndex := aContext.Index;
-  Children := Collections.CreateList<INode>;
+  Children := TNodeList.Create;
   for Expression in Expressions do
   begin
     if Expression.IsMatch(aContext) then
@@ -437,7 +437,7 @@ end;
 function TLookaheadExpression.ApplyExpression(const aContext: IContext): INode;
 var
   Node: INode;
-  Children: IList<INode>;
+  Children: INodeList;
   PreviousIndex: Integer;
 begin
   Result := nil;
@@ -446,7 +446,7 @@ begin
   Node := Expression.Match(aContext); { don't consumes text }
   if Assigned(Node) then
   begin
-    Children := Collections.CreateList<INode>;
+    Children := TNodeList.Create;
     Children.Add(Node);
   end;
   Result := TNode.Create(Name, Node.Text, PreviousIndex, Children);
@@ -509,14 +509,14 @@ var
   Count: Integer;
   i: Integer;
   PreviousIndex: Integer;
-  Children: IList<INode>;
+  Children: INodeList;
   ChildNode: INode;
   FullText: string;
 begin
   Result := nil;
   PreviousIndex := aContext.Index;
   FullText := '';
-  Children := Collections.CreateList<INode>;
+  Children := TNodeList.Create;
   for i in [1..FMin] do
   begin
     ChildNode := Expression.Match(aContext);
@@ -578,14 +578,14 @@ function TRepeatAtLeastExpression.ApplyExpression(
 var
   i: Integer;
   PreviousIndex: Integer;
-  Children: IList<INode>;
+  Children: INodeList;
   ChildNode: INode;
   FullText: string;
 begin
   Result := nil;
   FullText := '';
   PreviousIndex := aContext.Index;
-  Children := Collections.CreateList<INode>;
+  Children := TNodeList.Create;
   for i in [1..FMin] do
   begin
     ChildNode := Expression.Match(aContext);

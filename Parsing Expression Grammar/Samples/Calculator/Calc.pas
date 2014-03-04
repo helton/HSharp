@@ -94,7 +94,7 @@ end;
 
 function TCalc.Visit_ParenthesizedExp(const aNode: INode): TValue;
 begin
-  Result := aNode.Children[2].Value.AsExtended;
+  Result := aNode.Children['expression'].Value.AsExtended;
 end;
 
 function TCalc.Visit_Term(const aNode: INode): TValue;

@@ -12,7 +12,8 @@ rules = _ rule+
 rule = identifier assignment expression
 assignment = "=" _
 literal = /\".*?[^\\]\"/i _
-expression = ored | sequence | term
+expression = expression_label? (ored | sequence | term)
+expression_label = identifier ":"
 or_term = "|" _ term
 ored = term or_term+
 sequence = term term+

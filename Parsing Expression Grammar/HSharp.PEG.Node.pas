@@ -29,6 +29,7 @@ uses
   System.Rtti,
   HSharp.Collections,
   HSharp.Collections.Interfaces,
+  HSharp.Collections.List,
   HSharp.PEG.Node.Interfaces;
 
 type
@@ -38,10 +39,10 @@ type
     FText: string;
     FIndex: Integer;
     FValue: TValue;
-    FChildren: IList<INode>;
+    FChildren: INodeList;
   strict protected
     { INode }
-    function GetChildren: IList<INode>;
+    function GetChildren: INodeList;
     function GetIndex: Integer;
     function GetName: string;
     function GetText: string;
@@ -51,7 +52,7 @@ type
     function Accept(const aVisitor: INodeVisitor): TValue;
   public
     constructor Create(const aName, aText: string; aIndex: Integer;
-      const aChildren: IList<INode> = nil); reintroduce;
+      const aChildren: INodeList = nil); reintroduce;
   end;
 
   TRegexNode = class(TNode, IRegexNode)
@@ -61,13 +62,21 @@ type
     function GetMatch: TMatch;
   public
     constructor Create(const aName: string; aMatch: TMatch; aIndex: Integer;
-       const aChildren: IList<INode> = nil); reintroduce;
+       const aChildren: INodeList = nil); reintroduce;
+  end;
+
+  TNodeList = class(TInterfacedList<INode>, INodeList)
+  strict protected
+    function GetItemById(const aId: TValue): INode;
+  public
+    property ItemById[const aId: TValue]: INode read GetItemById; default;
   end;
 
 implementation
 
 uses
   System.SysUtils,
+  System.TypInfo,
   HSharp.Core.ArrayString;
 
 { TNode }
@@ -78,7 +87,7 @@ begin
 end;
 
 constructor TNode.Create(const aName, aText: string; aIndex: Integer;
-  const aChildren: IList<INode>);
+  const aChildren: INodeList);
 begin
   inherited Create;
   FName := aName;
@@ -87,7 +96,7 @@ begin
   FChildren := aChildren;
 end;
 
-function TNode.GetChildren: IList<INode>;
+function TNode.GetChildren: INodeList;
 begin
   Result := FChildren;
 end;
@@ -120,7 +129,7 @@ end;
 { TRegexNode }
 
 constructor TRegexNode.Create(const aName: string; aMatch: TMatch;
-  aIndex: Integer; const aChildren: IList<INode>);
+  aIndex: Integer; const aChildren: INodeList);
 begin
   inherited Create(aName, aMatch.Value, aIndex, aChildren);
   FMatch := aMatch;
@@ -129,6 +138,32 @@ end;
 function TRegexNode.GetMatch: TMatch;
 begin
   Result := FMatch;
+end;
+
+{ TNodeList }
+
+function TNodeList.GetItemById(const aId: TValue): INode;
+
+  function GetItemByName(const aName: string): INode;
+  var
+    Node: INode;
+  begin
+    for Node in Self do
+    begin
+      if Node.Name = aName then
+      begin
+        Result := Node;
+        Break;
+      end;
+    end;
+  end;
+
+begin
+  Result := nil;
+  if aId.TypeInfo.Kind in [tkChar, tkString, tkWChar, tkLString, tkWString, tkUString] then
+    Result := GetItemByName(aId.AsString)
+  else if aId.TypeInfo.Kind in [tkInteger, tkInt64] then
+    Result := GetItem(aId.AsInteger);
 end;
 
 end.
