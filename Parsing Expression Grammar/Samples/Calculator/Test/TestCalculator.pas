@@ -26,14 +26,11 @@ interface
 
 uses
   TestFramework,
+  HSharp.Core.Lazy,
   Calc;
 
 type
   TestCalc = class(TTestCase)
-  strict private
-    FCalc: ICalc;
-  protected
-    procedure SetUp; override;
   published
     procedure TestAddAndSubtraction;
     procedure TestMultiplicationAndDivision;
@@ -45,54 +42,50 @@ type
 
 implementation
 
-{ TestCalc }
+var
+  Calc: Lazy<ICalc, TCalc>;
 
-procedure TestCalc.SetUp;
-begin
-  inherited;
-  FCalc := TCalc.Create;
-end;
+{ TestCalc }
 
 procedure TestCalc.TestAddAndSubtraction;
 begin
-  CheckEquals(11+22, FCalc.Evaluate('11+22'));
-  CheckEquals(11-22, FCalc.Evaluate('11-22'));
-  CheckEquals(1-2+3-4+5-6+7, FCalc.Evaluate('1-2+3-4+5-6+7'));
-  CheckEquals(11 + 22, FCalc.Evaluate('11 + 22'));
-  CheckEquals(11 + 22, FCalc.Evaluate(' 11 + 22'));
-  CheckEquals(11 + 22 , FCalc.Evaluate('11 + 22 '));
-  CheckEquals(11 + 22 , FCalc.Evaluate(' 11 + 22 '));
-  CheckEquals(11   +    22   , FCalc.Evaluate(' 11   +    22   '));
+  CheckEquals(11+22, Calc.Instance.Evaluate('11+22'));
+  CheckEquals(11-22, Calc.Instance.Evaluate('11-22'));
+  CheckEquals(1-2+3-4+5-6+7, Calc.Instance.Evaluate('1-2+3-4+5-6+7'));
+  CheckEquals(11 + 22, Calc.Instance.Evaluate('11 + 22'));
+  CheckEquals(11 + 22, Calc.Instance.Evaluate(' 11 + 22'));
+  CheckEquals(11 + 22 , Calc.Instance.Evaluate('11 + 22 '));
+  CheckEquals(11 + 22 , Calc.Instance.Evaluate(' 11 + 22 '));
+  CheckEquals(11   +    22   , Calc.Instance.Evaluate(' 11   +    22   '));
 end;
 
 procedure TestCalc.TestFloatingPointNumbers;
 begin
   CheckEquals(3.14 * 1.142857 + (1.41 + 4.3333),
-              FCalc.Evaluate('3.14 * 1.142857 + (1.41 + 4.3333)'))
-              ;
+              Calc.Instance.Evaluate('3.14 * 1.142857 + (1.41 + 4.3333)'));
 end;
 
 procedure TestCalc.TestGeneral;
 begin
   CheckEquals(5 - 8 * (123 - 545) / 4 + 34 * 22 + 2,
-              FCalc.Evaluate('5 - 8 * (123 - 545) / 4 + 34 * 22 + 2'));
+              Calc.Instance.Evaluate('5 - 8 * (123 - 545) / 4 + 34 * 22 + 2'));
 end;
 
 procedure TestCalc.TestMultiplicationAndDivision;
 begin
-  CheckEquals(3.14 * 2, FCalc.Evaluate('3.14 * 2'));
-  CheckEquals(2*5, FCalc.Evaluate('2*5'));
-  CheckEquals(18/2, FCalc.Evaluate('18/2'));
+  CheckEquals(3.14 * 2, Calc.Instance.Evaluate('3.14 * 2'));
+  CheckEquals(2*5, Calc.Instance.Evaluate('2*5'));
+  CheckEquals(18/2, Calc.Instance.Evaluate('18/2'));
 end;
 
 procedure TestCalc.TestNegateExpression;
 begin
-  CheckEquals(-4 * 2, FCalc.Evaluate('-4 * 2'));
+  CheckEquals(-4 * 2, Calc.Instance.Evaluate('-4 * 2'));
 end;
 
 procedure TestCalc.TestParenthesizedExpressions;
 begin
-  CheckEquals(6 * (2 + 4) / 2, FCalc.Evaluate('6 * (2 + 4) / 2'));
+  CheckEquals(6 * (2 + 4) / 2, Calc.Instance.Evaluate('6 * (2 + 4) / 2'));
 end;
 
 initialization

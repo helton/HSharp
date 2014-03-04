@@ -54,6 +54,7 @@ type
 {OK}function Visit_assignment(const aNode: INode): TValue;
 {OK}function Visit_literal(const aNode: INode): TValue;
 {OK}function Visit_expression(const aNode: INode): TValue;
+{OK}function Visit_expression_label(const aNode: INode): TValue;
 {OK}function Visit_or_term(const aNode: INode): TValue;
 {OK}function Visit_ored(const aNode: INode): TValue;
 {OK}function Visit_sequence(const aNode: INode): TValue;
@@ -79,6 +80,9 @@ type
 implementation
 
 uses
+  Vcl.Dialogs, {TODO -oHelton -cRemove : Remove!}
+  HSharp.PEG.Node.Visitors,
+
   System.RegularExpressions,
   System.SysUtils;
 
@@ -92,6 +96,7 @@ var
   assignment,
   literal,
   expression,
+  expression_label,
   or_term,
   ored,
   sequence,
@@ -116,6 +121,7 @@ var
     assignment              := TRule.Create('assignment');
     literal                 := TRule.Create('literal');
     expression              := TRule.Create('expression');
+    expression_label        := TRule.Create('expression_label');
     or_term                 := TRule.Create('or_term');
     ored                    := TRule.Create('ored');
     sequence                := TRule.Create('sequence');
@@ -161,11 +167,22 @@ var
        TRuleReferenceExpression.Create(_)
       ]
     );
-    //expression = ored | sequence | term
-    expression.Expression := TOneOfExpression.Create(
-      [TRuleReferenceExpression.Create(ored),
-       TRuleReferenceExpression.Create(sequence),
-       TRuleReferenceExpression.Create(term)
+    //expression = expression_label? (ored | sequence | term)
+    expression.Expression := TSequenceExpression.Create(
+      [TRepeatOptionalExpression.Create(
+        TRuleReferenceExpression.Create(expression_label)),
+       TOneOfExpression.Create(
+        [TRuleReferenceExpression.Create(ored),
+         TRuleReferenceExpression.Create(sequence),
+         TRuleReferenceExpression.Create(term)
+        ]
+       )
+      ]
+    );
+    //expression_label = identifier ":"
+    expression_label.Expression := TSequenceExpression.Create(
+      [TRuleReferenceExpression.Create(identifier),
+       TLiteralExpression.Create(':')
       ]
     );
     //or_term = "|" _ term
@@ -288,6 +305,7 @@ var
     RulesList.Add(assignment);
     RulesList.Add(literal);
     RulesList.Add(expression);
+    RulesList.Add(expression_label);
     RulesList.Add(or_term);
     RulesList.Add(ored);
     RulesList.Add(sequence);
@@ -325,7 +343,19 @@ begin
 end;
 
 function TBootstrappingGrammar.GetRules(const aGrammarText: string): IList<IRule>;
+
+//  function GetPrintedTreeText(const aTree: INode): string;
+//  var
+//    PrinterNodeVisitor: INodeVisitor;
+//    Value: TValue;
+//  begin
+//    PrinterNodeVisitor := TPrinterNodeVisitor.Create;
+//    Value := (aTree as IVisitableNode).Accept(PrinterNodeVisitor);
+//    Result := Value.AsString;
+//  end;
+
 begin
+//  ShowMessage(GetPrintedTreeText(Parse(aGrammarText)));
   Result := ParseAndVisit(aGrammarText).AsType<IList<IRule>>;
 end;
 
@@ -344,7 +374,15 @@ end;
 
 function TBootstrappingGrammar.Visit_expression(const aNode: INode): TValue;
 begin
-  Result := aNode.Children[0].Value;
+  Result := aNode.Children[1].Children[0].Value;
+  if not aNode.Children[0].Value.AsString.IsEmpty then
+    Result.AsType<IExpression>.Name := aNode.Children[0].Value.AsString;
+end;
+
+function TBootstrappingGrammar.Visit_expression_label(
+  const aNode: INode): TValue;
+begin
+  Result := aNode.Children[0].Text;
 end;
 
 function TBootstrappingGrammar.Visit_identifier(const aNode: INode): TValue;

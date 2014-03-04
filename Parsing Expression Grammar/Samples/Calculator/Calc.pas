@@ -30,7 +30,7 @@ type
     function Visit_AddOp(const aNode: INode): TValue;
     [Rule('mulOp = ("*"|"/") _')]
     function Visit_MulOp(const aNode: INode): TValue;
-    [Rule('number = /[0-9]*\.?[0-9]+(e[-+]?[0-9]+)?/ _')]
+    [Rule('number = n:/[0-9]*\.?[0-9]+(e[-+]?[0-9]+)?/ _')]
     function Visit_Number(const aNode: INode): TValue;
     [Rule('_ = /\s+/?')]
     function Visit__(const aNode: INode): TValue;
