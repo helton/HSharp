@@ -109,7 +109,7 @@ begin
   Context := TContext.Create(aText);
   Result := FRootRule.Parse(Context);
   if not Context.Text.IsEmpty then
-    raise EIncompleteParseError.CreateFmt('Rule "%s" matched in its entirety, ' +
+    raise EIncompleteParseError.CreateFmt('Rule "%s" matched in its entirely, ' +
       'but it didn''t consume all the text. The non-matching portion of the ' +
       'text is "%s"', [FRootRule.Name, Context.Text]);
 end;

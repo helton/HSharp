@@ -6,63 +6,45 @@ program Calculator;
 
 uses
   System.SysUtils,
+  HSharp.Core.Assert,
   HSharp.Core.Benchmarker,
   Calc in 'Calc.pas';
 
 var
   Calc: ICalc;
 
-  procedure DoBenchmarkAndWrite(const aProc: TProc);
-  begin
-    Writeln(Format('Elapsed time = %15.9f ms',
-      [TBenchmarker.Benchmark(
-      aProc
-      )]
-    ));
-    Writeln(StringOfChar('-', 50));
-  end;
-
   procedure EvalAndWrite(const aExpression: string);
   begin
-    DoBenchmarkAndWrite(
-      procedure
-      begin
-        Writeln(('"' + aExpression + '"'):20, ' = <', Calc.Evaluate(
-          aExpression):10:2, '>');
-      end
-    );
+    Writeln(('"' + aExpression + '"'):20, ' = <', Calc.Evaluate(
+      aExpression):10:2, '>');
   end;
 
 begin
   ReportMemoryLeaksOnShutdown := True;
   try
-    Writeln(StringOfChar('-', 50));
-    DoBenchmarkAndWrite(
-      procedure
-      begin
-        Writeln('Calc := TCalc.Create');
-        Calc := TCalc.Create;
-      end
-    );
-    EvalAndWrite('111111');
-    EvalAndWrite(' 222222');
-    EvalAndWrite('333333  ');
+    Calc := TCalc.Create;
+//    EvalAndWrite('11111');
+//    EvalAndWrite(' 222222');
+//    EvalAndWrite('333333  ');
     EvalAndWrite('11+22');
+    EvalAndWrite('2*5');
+    EvalAndWrite('18/2');
     EvalAndWrite('11-22');
     EvalAndWrite('1-2+3-4+5-6+7');
+    EvalAndWrite('5 - 8 * (123 - 545) / 4 + ');
     EvalAndWrite('11 + 22');
     EvalAndWrite(' 11 + 22');
     EvalAndWrite('11 + 22 ');
     EvalAndWrite(' 11 + 22 ');
     EvalAndWrite('   11   +    22   ');
-    EvalAndWrite('11+22+33+44+55+66+77+88+99+'+
-                 '11+22+33+44+55+66+77+88+99+'+
-                 '11+22+33+44+55+66+77+88+99+'+
-                 '11+22+33+44+55+66+77+88+99+'+
-                 '11+22+33+44+55+66+77+88+99+'+
-                 '11+22+33+44+55+66+77+88+99+'+
-                 '11+22+33+44+55+66+77+88+99+'+
-                 '11+22+33+44+55+66+77+88+99');
+//    EvalAndWrite('11+22+33+44+55+66+77+88+99+'+
+//                 '11+22+33+44+55+66+77+88+99+'+
+//                 '11+22+33+44+55+66+77+88+99+'+
+//                 '11+22+33+44+55+66+77+88+99+'+
+//                 '11+22+33+44+55+66+77+88+99+'+
+//                 '11+22+33+44+55+66+77+88+99+'+
+//                 '11+22+33+44+55+66+77+88+99+'+
+//                 '11+22+33+44+55+66+77+88+99');
     Readln;
   except
     on E: Exception do
