@@ -33,6 +33,7 @@ type
   published
     procedure TestAddAndSubtraction;
     procedure TestMultiplicationAndDivision;
+    procedure TestExponentiationAndRootExtraction;
     procedure TestParenthesizedExpression;
     procedure TestNegateExpression;
     procedure TestFloatingPointNumbers;
@@ -42,6 +43,7 @@ type
 implementation
 
 uses
+  System.Math,
   HSharp.Core.Lazy;
 
 var
@@ -59,6 +61,13 @@ begin
   CheckEquals(11 + 22 , Calc.Instance.Evaluate('11 + 22 '));
   CheckEquals(11 + 22 , Calc.Instance.Evaluate(' 11 + 22 '));
   CheckEquals(11   +    22   , Calc.Instance.Evaluate(' 11   +    22   '));
+end;
+
+procedure TestCalc.TestExponentiationAndRootExtraction;
+begin
+  CheckEquals(Power(2, 10), Calc.Instance.Evaluate('2^10'));
+  CheckEquals(Sqrt(49), Calc.Instance.Evaluate('2r49'));
+  CheckEquals(Power(27, 1/3), Calc.Instance.Evaluate('3r27'));
 end;
 
 procedure TestCalc.TestFloatingPointNumbers;
