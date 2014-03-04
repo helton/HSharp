@@ -53,14 +53,9 @@ begin
 end;
 
 function Lazy<I, T>.Instance: I;
-var
-  Obj: T;
 begin
   if not Assigned(FInstance) then
-  begin
-    Obj := Generics.GetNewInstance<T>;
-    Supports(Obj, Generics.InterfaceToGuid<I>, FInstance);
-  end;
+    Supports(Generics.CreateInstance<T>, Generics.InterfaceToGuid<I>, FInstance);
   Result := FInstance;
 end;
 

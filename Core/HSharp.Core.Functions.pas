@@ -28,7 +28,7 @@ type
   Generics = class
   public
     class function InterfaceToGuid<I: IInterface>: TGuid;
-    class function GetNewInstance<T: class, constructor>: T;
+    class function CreateInstance<T: class, constructor>: T;
   end;
 
 implementation
@@ -44,7 +44,7 @@ begin
   Result := GetTypeData(TypeInfo(I)).Guid;
 end;
 
-class function Generics.GetNewInstance<T>: T;
+class function Generics.CreateInstance<T>: T;
 var
   RttiType: TRttiType;
   ConstructorMethod: TRttiMethod;

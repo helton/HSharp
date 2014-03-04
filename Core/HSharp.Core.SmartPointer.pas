@@ -35,7 +35,7 @@ type
     FValue: T;
   public
     constructor Create; overload;
-    constructor Create(aValue: T); overload;
+    constructor Create(const aValue: T); overload;
     destructor Destroy; override;
     function Invoke: T;
   end;
@@ -53,11 +53,11 @@ begin
   FValue := T.Create;
 end;
 
-constructor TSmartPointer<T>.Create(aValue: T);
+constructor TSmartPointer<T>.Create(const aValue: T);
 begin
   inherited Create;
   if AValue = nil then
-    FValue := Generics.GetNewInstance<T>
+    FValue := Generics.CreateInstance<T>
   else
     FValue := aValue;
 end;

@@ -87,8 +87,6 @@ type
   TContainer = class
   strict private
     FTypesDict: IDictionary<TGuid, IRegistrationInfo>;
-  private
-    function InterfaceToGuid<I: IInterface>: TGuid;
   protected
     procedure AddRegistrationInfo(aGuid: TGuid; aRegistrationInfo: TRegistrationInfo);
   public
@@ -107,6 +105,7 @@ implementation
 uses
   System.SysUtils,
   HSharp.Core.Arrays,
+  HSharp.Core.Functions,
   HSharp.Container,
   HSharp.Container.Exceptions;
 
@@ -144,12 +143,7 @@ end;
 
 function TContainer.HasType<I>: Boolean;
 begin
-  Result := FTypesDict.ContainsKey(InterfaceToGuid<I>);
-end;
-
-function TContainer.InterfaceToGuid<I>: TGuid;
-begin
-  Result := GetTypeData(TypeInfo(I)).Guid;
+  Result := FTypesDict.ContainsKey(Generics.InterfaceToGuid<I>);
 end;
 
 function TContainer.ResolveType(aTypeInfo: PTypeInfo): IInterface;
@@ -166,7 +160,7 @@ function TContainer.ResolveType<I>: I;
 var
   RegistrationInfo: IRegistrationInfo;
 begin
-  if FTypesDict.TryGetValue(InterfaceToGuid<I>, RegistrationInfo) then
+  if FTypesDict.TryGetValue(Generics.InterfaceToGuid<I>, RegistrationInfo) then
     Result := RegistrationInfo.GetInstance.AsType<I>
   else
     raise ENotRegisteredType.Create(TypeInfo(I));
@@ -174,8 +168,8 @@ end;
 
 procedure TContainer.UnregisterType<I>;
 begin
-  if FTypesDict.ContainsKey(InterfaceToGuid<I>) then
-    FTypesDict.Remove(InterfaceToGuid<I>)
+  if FTypesDict.ContainsKey(Generics.InterfaceToGuid<I>) then
+    FTypesDict.Remove(Generics.InterfaceToGuid<I>)
   else
     raise ENotRegisteredType.Create(TypeInfo(I));
 end;
