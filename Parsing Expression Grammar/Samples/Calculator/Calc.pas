@@ -30,7 +30,7 @@ type
     function Visit_AddOp(const aNode: INode): TValue;
     [Rule('mulOp = ("*"|"/") _')]
     function Visit_MulOp(const aNode: INode): TValue;
-    [Rule('number = _ /[0-9]+/ _')]
+    [Rule('number = /[0-9]*\.?[0-9]+(e[-+]?[0-9]+)?/ _')]
     function Visit_Number(const aNode: INode): TValue;
     [Rule('_ = /\s+/?')]
     function Visit__(const aNode: INode): TValue;
@@ -89,7 +89,7 @@ end;
 
 function TCalc.Visit_Number(const aNode: INode): TValue;
 begin
-  Result := aNode.Children[1].Text.ToExtended;
+  Result := aNode.Children[0].Text.Replace('.', ',').ToExtended;
 end;
 
 function TCalc.Visit_ParenthesizedExp(const aNode: INode): TValue;
