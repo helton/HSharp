@@ -43,7 +43,7 @@ type
     function Visit_ExpOp(const aNode: INode): TValue;
     [Rule('number = num:/[0-9]*\.?[0-9]+(e[-+]?[0-9]+)?/ _')]
     function Visit_Number(const aNode: INode): TValue;
-    [Rule('negate = minus:"-"?')]
+    [Rule('negate = "-"?')]
     function Visit_Negate(const aNode: INode): TValue;
     [Rule('_ = /\s+/?')]
     function Visit__(const aNode: INode): TValue;

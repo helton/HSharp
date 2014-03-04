@@ -45,8 +45,8 @@ type
   public
     constructor Create(const aRules: IList<IRule>;
       const aRootRule: IRule = nil); overload; virtual;
-    function Parse(const aText: string): INode;
-    function ParseAndVisit(const aText: string): TValue;
+    function Parse(const aText: string): INode; virtual;
+    function ParseAndVisit(const aText: string): TValue; virtual;
     function AsString: string;
   end;
 
