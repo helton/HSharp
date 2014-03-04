@@ -19,10 +19,10 @@
   - (  ) Create attribute LazyEvaluation to rules
 (  ) - Add EOF in IContext
 (OK) - If after parse and context.EOF -> raise exception 
-(??) - Add label to subexpressions:
+(OK) - Add label to subexpressions:
   ex.: 'ID = part1:/[a-z_]+/il part2:/[a-z0-9_]/il'
-(  ) - Add match count on expression (or node?)
-(..)  - Add multiple repetition (like regex, vide Citrus)
+(..) - Add multiple repetition (like regex, vide Citrus)
+(  ) - fix comment support
 (  )  - Add multiline comment option
 
 [Rule('IF = "if" _ expr _ stmt ( "else" _ stmt ) ?')]

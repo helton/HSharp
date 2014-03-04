@@ -20,68 +20,42 @@
 {                                                                           }
 {***************************************************************************}
 
-unit HSharp.PEG.Grammar;
+unit TestMiniHLanguage;
 
 interface
 
 uses
-  HSharp.PEG.Rule.Interfaces,
-  HSharp.PEG.Grammar.Base,
-  HSharp.PEG.Grammar.Bootstrapping,
-  HSharp.PEG.Grammar.Interfaces;
+  TestFramework,
+  Language.MiniH;
 
 type
-  TGrammar = class(TBaseGrammar, IGrammar)
-  strict private
-    FGrammarText: string;
-  strict protected
-    procedure BuildGrammarText;
-    function GetGrammarText: string;
-  public
-    constructor Create; reintroduce; virtual;
-    property GrammarText: string read FGrammarText;
+  TestMiniH = class(TTestCase)
+  published
+    procedure Test;
   end;
 
 implementation
 
 uses
-  System.Rtti,
-  HSharp.Core.ArrayString,
-  HSharp.Core.Rtti,
-  HSharp.PEG.Grammar.Attributes;
+  HSharp.Core.Lazy;
 
-{ TAnnotatedGrammar }
-
-procedure TGrammar.BuildGrammarText;
 var
-  Method: TRttiMethod;
-  Attribute: TCustomAttribute;
-  Grammar: IArrayString;
+  MiniH: Lazy<IMiniH, TMiniH>;
+
+{ TestMiniH }
+
+procedure TestMiniH.Test;
 begin
-  Grammar := TArrayString.Create;
-  for Method in RttiContext.GetType(ClassType).GetMethods do
-  begin
-    for Attribute in Method.GetAttributes do
-    begin
-      if Attribute is RuleAttribute then
-        Grammar.Add(RuleAttribute(Attribute).Rule);
-    end;
-  end;
-  FGrammarText := Grammar.AsString;
+  CheckEquals(3, MiniH.Instance.Execute('1 + 2').AsExtended);
+  CheckEquals(3, MiniH.Instance.Execute('a = 1 + 2').AsExtended);
+  CheckEquals(3, MiniH.Instance.Execute('a').AsExtended);
+  CheckEquals(6, MiniH.Instance.Execute('b = 2 * a').AsExtended);
+  CheckEquals(9, MiniH.Instance.Execute('d = c = b + a').AsExtended);
+  CheckEquals(9, MiniH.Instance.Execute('c').AsExtended);
+  CheckEquals(9, MiniH.Instance.Execute('d').AsExtended);
 end;
 
-constructor TGrammar.Create;
-var
-  BootstrappingGrammar: IBootstrappingGrammar;
-begin
-  BuildGrammarText;
-  BootstrappingGrammar := TBootstrappingGrammar.Create;
-  inherited Create(BootstrappingGrammar.GetRules(FGrammarText));
-end;
-
-function TGrammar.GetGrammarText: string;
-begin
-  Result := FGrammarText;
-end;
+initialization
+  RegisterTest('HSharp.PEG.Samples.MiniH', TestMiniH.Suite);
 
 end.

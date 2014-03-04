@@ -74,7 +74,8 @@ type
   strict protected
     property Expressions: IList<IExpression> read FExpressions;
   public
-    constructor Create(const aExpressions: array of IExpression); reintroduce;
+    constructor Create(const aExpressions: array of IExpression); reintroduce; overload;
+    constructor Create(const aExpressions: IList<IExpression>); reintroduce; overload;
   end;
 
   {$ENDREGION}
@@ -379,6 +380,12 @@ begin
     else
       Result := Result + ' ' + Expression.AsString;
   end;
+end;
+
+constructor TCompoundExpression.Create(const aExpressions: IList<IExpression>);
+begin
+  inherited Create;
+  FExpressions := aExpressions;
 end;
 
 { TOneOfExpression }

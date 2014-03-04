@@ -1,0 +1,48 @@
+﻿<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+    <PropertyGroup>
+        <ProjectGuid>{D1DD3B0B-3CE2-4504-8008-D46EBAABBC57}</ProjectGuid>
+    </PropertyGroup>
+    <ItemGroup>
+        <Projects Include="Calculator\Test\Calculator.Tests.dproj">
+            <Dependencies/>
+        </Projects>
+        <Projects Include="MiniH\Test\MiniH.Tests.dproj">
+            <Dependencies/>
+        </Projects>
+    </ItemGroup>
+    <ProjectExtensions>
+        <Borland.Personality>Default.Personality.12</Borland.Personality>
+        <Borland.ProjectType/>
+        <BorlandProject>
+            <Default.Personality/>
+        </BorlandProject>
+    </ProjectExtensions>
+    <Target Name="Calculator_Tests">
+        <MSBuild Projects="Calculator\Test\Calculator.Tests.dproj"/>
+    </Target>
+    <Target Name="Calculator_Tests:Clean">
+        <MSBuild Projects="Calculator\Test\Calculator.Tests.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="Calculator_Tests:Make">
+        <MSBuild Projects="Calculator\Test\Calculator.Tests.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="MiniH_Tests">
+        <MSBuild Projects="MiniH\Test\MiniH.Tests.dproj"/>
+    </Target>
+    <Target Name="MiniH_Tests:Clean">
+        <MSBuild Projects="MiniH\Test\MiniH.Tests.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="MiniH_Tests:Make">
+        <MSBuild Projects="MiniH\Test\MiniH.Tests.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="Build">
+        <CallTarget Targets="Calculator_Tests;MiniH_Tests"/>
+    </Target>
+    <Target Name="Clean">
+        <CallTarget Targets="Calculator_Tests:Clean;MiniH_Tests:Clean"/>
+    </Target>
+    <Target Name="Make">
+        <CallTarget Targets="Calculator_Tests:Make;MiniH_Tests:Make"/>
+    </Target>
+    <Import Project="$(BDS)\Bin\CodeGear.Group.Targets" Condition="Exists('$(BDS)\Bin\CodeGear.Group.Targets')"/>
+</Project>

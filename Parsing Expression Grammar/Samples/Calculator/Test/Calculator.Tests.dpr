@@ -1,4 +1,4 @@
-program CalculatorTests;
+program Calculator.Tests;
 {
 
   Delphi DUnit Test Project
