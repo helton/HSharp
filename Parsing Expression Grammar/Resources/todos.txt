@@ -17,7 +17,6 @@
 (OK) - Add Nodes
 (  ) - Add LazyEvaluation support (ex. IF statement cannot be computed until the user wants to)
   - (  ) Create attribute LazyEvaluation to rules
-(  ) - Add EOF in IContext
 (OK) - If after parse and context.EOF -> raise exception 
 (OK) - Add label to subexpressions:
   ex.: 'ID = part1:/[a-z_]+/il part2:/[a-z0-9_]/il'

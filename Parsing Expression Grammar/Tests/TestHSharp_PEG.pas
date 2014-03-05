@@ -532,10 +532,32 @@ procedure TestGrammar.TestBootstrappingGrammar;
     Arr: IArrayString;
   begin
     Arr := TArrayString.Create;
-    Arr.Add('<Node called "rules" matching "rules = _ rule+\nrule = identifier assignment expression\nassignment = "=" _\nliteral = /\".*?[^\\]\"/i _\nexpression = ored | sequence | term\nor_term = "|" _ term\nored = term or_term+\nsequence = term term+\nnegative_lookahead_term = "!" term _\nlookahead_term = "&" term _\nterm = lookahead_term | negative_lookahead_term | quantified | repetition | atom\nquantified = atom quantifier\natom = reference | literal | regex | parenthesized\nregex = /\/.*?[^\\]\// /[imesp]*/i? _\nparenthesized = "(" _ expression ")" _\nquantifier = /[*+?]/ _\nrepetition = atom /{[0-9]+(\s*,\s*([0-9]+)?)?}/ _\nreference = identifier !assignment\nidentifier = /[a-z_][a-z0-9_]*/i _\n_ = /\s+/? | comment\ncomment = /#.*?(?:\r\n|$)/">');
+    Arr.Add('<Node called "rules" matching "rules = _ rule+\nrule = identifier ' +
+      'assignment expression\nassignment = "=" _\nliteral = /\".*?[^\\]\"/i ' +
+      '_\nexpression = ored | sequence | term\nor_term = "|" _ term\nored = ' +
+      'term or_term+\nsequence = term term+\nnegative_lookahead_term = "!" term ' +
+      '_\nlookahead_term = "&" term _\nterm = lookahead_term | ' +
+      'negative_lookahead_term | quantified | repetition | atom\nquantified = ' +
+      'atom quantifier\natom = reference | literal | regex | ' +
+      'parenthesized\nregex = /\/.*?[^\\]\// /[imesp]*/i? _\nparenthesized = "(' +
+      '" _ expression ")" _\nquantifier = /[*+?]/ _\nrepetition = atom /{[0-9]+(' +
+      '\s*,\s*([0-9]+)?)?}/ _\nreference = identifier !assignment\nidentifier = ' +
+      '/[a-z_][a-z0-9_]*/i _\n_ = /\s+/? | comment\ncomment = /#.*?(' +
+      '?:\r\n|$)/">');
     Arr.Add('  <Node called "_" matching "">');
     Arr.Add('      <Node matching "">');
-    Arr.Add('  <Node matching "rules = _ rule+\nrule = identifier assignment expression\nassignment = "=" _\nliteral = /\".*?[^\\]\"/i _\nexpression = ored | sequence | term\nor_term = "|" _ term\nored = term or_term+\nsequence = term term+\nnegative_lookahead_term = "!" term _\nlookahead_term = "&" term _\nterm = lookahead_term | negative_lookahead_term | quantified | repetition | atom\nquantified = atom quantifier\natom = reference | literal | regex | parenthesized\nregex = /\/.*?[^\\]\// /[imesp]*/i? _\nparenthesized = "(" _ expression ")" _\nquantifier = /[*+?]/ _\nrepetition = atom /{[0-9]+(\s*,\s*([0-9]+)?)?}/ _\nreference = identifier !assignment\nidentifier = /[a-z_][a-z0-9_]*/i _\n_ = /\s+/? | comment\ncomment = /#.*?(?:\r\n|$)/">');
+    Arr.Add('  <Node matching "rules = _ rule+\nrule = identifier assignment ' +
+      'expression\nassignment = "=" _\nliteral = /\".*?[^\\]\"/i _\nexpression =' +
+      ' ored | sequence | term\nor_term = "|" _ term\nored = term or_term+' +
+      '\nsequence = term term+\nnegative_lookahead_term = "!" term ' +
+      '_\nlookahead_term = "&" term _\nterm = lookahead_term | ' +
+      'negative_lookahead_term | quantified | repetition | atom\nquantified = ' +
+      'atom quantifier\natom = reference | literal | regex | ' +
+      'parenthesized\nregex = /\/.*?[^\\]\// /[imesp]*/i? _\nparenthesized = "(' +
+      '" _ expression ")" _\nquantifier = /[*+?]/ _\nrepetition = atom /{[0-9]+(' +
+      '\s*,\s*([0-9]+)?)?}/ _\nreference = identifier !assignment\nidentifier = ' +
+      '/[a-z_][a-z0-9_]*/i _\n_ = /\s+/? | comment\ncomment = /#.*?(' +
+      '?:\r\n|$)/">');
     Arr.Add('      <Node called "rule" matching "rules = _ rule+\n">');
     Arr.Add('          <Node called "identifier" matching "rules ">');
     Arr.Add('              <RegexNode matching "rules">');

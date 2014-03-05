@@ -14,16 +14,21 @@ uses
   HSharp.PEG.Node.Interfaces;
 
 type
-  EVariableNotDefined = class(Exception);
+  {$REGION 'Types'}
 
+  EVariableNotDefined = class(Exception);
+  {$SCOPEDENUMS ON}
+  TOperation = (None, Addition, Subtraction, Multiplication, Division, Power, Radix);
+  {$SCOPEDENUMS OFF}
+
+  {$ENDREGION}
+
+  {$REGION 'Interfaces'}
   IMiniH = interface(IGrammar)
     ['{48EF9501-978B-41E7-839E-9FE71C53C788}']
     function Execute(const aExpression: string): TValue;
   end;
-
-  {$SCOPEDENUMS ON}
-  TOperation = (None, Addition, Subtraction, Multiplication, Division, Power, Radix);
-  {$SCOPEDENUMS OFF}
+  {$ENDREGION}
 
   //TScope = class
 
