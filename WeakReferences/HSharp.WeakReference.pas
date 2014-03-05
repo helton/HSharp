@@ -25,32 +25,30 @@ unit HSharp.WeakReference;
 interface
 
 type
-  Weak<T> = record
+  Weak<I: IInterface> = record
   private
-    FInstance: Pointer;
-    function AsType: T;
+    FInstance: TInterfacedObject;
   public
-    class operator Implicit(aWeak: Weak<T>): T;
-    class operator Implicit(aValue: T): Weak<T>;
+    class operator Implicit(const aWeak: Weak<I>): I;
+    class operator Implicit(const aValue: I): Weak<I>;
   end;
 
 implementation
 
+uses
+  System.SysUtils,
+  HSharp.Core.Functions;
+
 { Weak<T> }
 
-function Weak<T>.AsType: T;
+class operator Weak<I>.Implicit(const aWeak: Weak<I>): I;
 begin
-  Result := T(FInstance^);
+  Supports(aWeak.FInstance, Generics.InterfaceToGuid<I>, Result);
 end;
 
-class operator Weak<T>.Implicit(aWeak: Weak<T>): T;
+class operator Weak<I>.Implicit(const aValue: I): Weak<I>;
 begin
-  Result := aWeak.AsType;
-end;
-
-class operator Weak<T>.Implicit(aValue: T): Weak<T>;
-begin
-  Result.FInstance := @aValue;
+  Result.FInstance := TInterfacedObject(aValue);
 end;
 
 end.

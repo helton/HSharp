@@ -304,7 +304,7 @@ var
     );
   end;
 
-  procedure CreateRulesArray;
+  procedure AddRulesToList;
   begin
     RulesList.Add(_);
     RulesList.Add(assignment);
@@ -335,7 +335,7 @@ begin
   RulesList := Collections.CreateList<IRule>;
   CreateRules;
   SetupRules;
-  CreateRulesArray;
+  AddRulesToList;
   inherited Create(RulesList, rules);
   FRulesMap := Collections.CreateDictionary<string, IRule>;
 end;

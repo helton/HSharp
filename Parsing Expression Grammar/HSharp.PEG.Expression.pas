@@ -34,7 +34,8 @@ uses
   HSharp.PEG.Expression.Interfaces,
   HSharp.PEG.Node,
   HSharp.PEG.Node.Interfaces,
-  HSharp.PEG.Rule.Interfaces;
+  HSharp.PEG.Rule.Interfaces,
+  HSharp.WeakReference;
 
 type
   {$REGION 'Base/abstract classes'}
@@ -207,9 +208,10 @@ type
 
   TRuleReferenceExpression = class(TExpression)
   strict private
-    FRule: IRule;  //should be a weak reference?
+    FRule: Weak<IRule>;
   strict protected
     function ApplyExpression(const aContext: IContext): INode; override;
+    function Rule: IRule;
   public
     constructor Create(const aRule: IRule); reintroduce;
     function AsString: string; override;
@@ -649,18 +651,23 @@ end;
 function TRuleReferenceExpression.ApplyExpression(
   const aContext: IContext): INode;
 begin
-  Result := FRule.Expression.Match(aContext); {TODO -oHelton -cQuestion : Is is right?}
+  Result := Rule.Expression.Match(aContext); {TODO -oHelton -cQuestion : Is is right?}
 end;
 
 function TRuleReferenceExpression.AsString: string;
 begin
-  Result := FRule.Name;
+  Result := Rule.Name;
 end;
 
 constructor TRuleReferenceExpression.Create(const aRule: IRule);
 begin
   inherited Create;
   FRule := aRule;
+end;
+
+function TRuleReferenceExpression.Rule: IRule;
+begin
+  Result := FRule;
 end;
 
 end.

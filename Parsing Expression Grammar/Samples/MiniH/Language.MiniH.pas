@@ -7,10 +7,10 @@ uses
   System.SysUtils,
   HSharp.Collections,
   HSharp.Collections.Interfaces,
-  HSharp.PEG.Node,
   HSharp.PEG.Grammar,
   HSharp.PEG.Grammar.Attributes,
   HSharp.PEG.Grammar.Interfaces,
+  HSharp.PEG.Node,
   HSharp.PEG.Node.Interfaces;
 
 type
