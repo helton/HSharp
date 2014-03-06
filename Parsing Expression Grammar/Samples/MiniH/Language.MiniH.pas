@@ -41,7 +41,9 @@ type
   public
     constructor Create; override;
   public
-    [Rule('statement = expression')]
+    [Rule('program = statement statement_list:(";" statement)*')]
+    function Visit_Program(const aNode: INode): TValue;
+    [Rule('statement = _ stmt:(ifelse | expression) _')]
     function Visit_Statement(const aNode: INode): TValue;
     [Rule('expression = _ negate term term_list:( addOp term )*')]
     function Visit_Expression(const aNode: INode): TValue;
@@ -69,10 +71,12 @@ type
     function Visit_Identifier(const aNode: INode): TValue;
     [Rule('negate = "-"?')]
     function Visit_Negate(const aNode: INode): TValue;
-    [Rule('_ = ws?')]
+    [Rule('ifelse = "if" _ expression _ "then" _ statement elsePart:(_ "else" _ statement)?')]
+    function Visit_IfElse(const aNode: INode): TValue;
+    [Rule('_ = __?')]
     function Visit__(const aNode: INode): TValue;
-    [Rule('ws = /\s+/')]
-    function Visit_Ws(const aNode: INode): TValue;
+    [Rule('__ = /\s+/')]
+    function Visit___(const aNode: INode): TValue;
   public
     function Execute(const aExpression: string): TValue;
   end;
@@ -204,6 +208,18 @@ begin
   Result := aNode.Children['id'].Text;
 end;
 
+function TMiniH.Visit_IfElse(const aNode: INode): TValue;
+begin
+  Result := nil;
+  if aNode.Children['expression'].Value.AsExtended <> 0 then
+    Result := aNode.Children['statement'].Value
+  else
+  begin
+    if Assigned(aNode.Children['elsePart'].Children) then
+      Result := aNode.Children['elsePart'].Children.First.Children['statement'].Value;
+  end;
+end;
+
 function TMiniH.Visit_MulOp(const aNode: INode): TValue;
 begin
   Result := TValue.From<TOperation>(StrToOperation(aNode.Children['op'].Text));
@@ -224,9 +240,16 @@ begin
   Result := aNode.Children['expression'].Value.AsExtended;
 end;
 
+function TMiniH.Visit_Program(const aNode: INode): TValue;
+begin
+  Result := aNode.Children['statement'].Value;
+  if Assigned(aNode.Children['statement_list'].Children) then
+    Result := aNode.Children['statement_list'].Children.Last.Children['statement'].Value;
+end;
+
 function TMiniH.Visit_Statement(const aNode: INode): TValue;
 begin
-  Result := aNode.Children.First.Value;
+  Result := aNode.Children['stmt'].Children.First.Value;
 end;
 
 function TMiniH.Visit_Term(const aNode: INode): TValue;
@@ -260,7 +283,7 @@ begin
       'scope', [VariableName]);
 end;
 
-function TMiniH.Visit_Ws(const aNode: INode): TValue;
+function TMiniH.Visit___(const aNode: INode): TValue;
 begin
 end;
 

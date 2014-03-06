@@ -32,6 +32,8 @@ type
   TestMiniH = class(TTestCase)
   published
     procedure Test;
+    procedure TestMultipleStatements;
+    procedure TestIf;
   end;
 
 implementation
@@ -46,13 +48,26 @@ var
 
 procedure TestMiniH.Test;
 begin
-  CheckEquals(3, MiniH.Instance.Execute('1 + 2').AsExtended);
-  CheckEquals(3, MiniH.Instance.Execute('a = 1 + 2').AsExtended);
+  CheckEquals(3, MiniH.Instance.Execute('1+2').AsExtended);
+  CheckEquals(3, MiniH.Instance.Execute('a=1+2').AsExtended);
   CheckEquals(3, MiniH.Instance.Execute('a').AsExtended);
-  CheckEquals(6, MiniH.Instance.Execute('b = 2 * a').AsExtended);
-  CheckEquals(9, MiniH.Instance.Execute('d = c = b + a').AsExtended);
+  CheckEquals(6, MiniH.Instance.Execute('b=2*a').AsExtended);
+  CheckEquals(9, MiniH.Instance.Execute('d=c=b+a').AsExtended);
   CheckEquals(9, MiniH.Instance.Execute('c').AsExtended);
   CheckEquals(9, MiniH.Instance.Execute('d').AsExtended);
+end;
+
+procedure TestMiniH.TestIf;
+begin
+  CheckEquals(123,  MiniH.Instance.Execute('if 1 then 123').AsExtended);
+  CheckTrue(MiniH.Instance.Execute('if 0 then 123').IsEmpty);
+  CheckEquals(123, MiniH.Instance.Execute('if  1  then  123  else  999').AsExtended);
+  CheckEquals(999, MiniH.Instance.Execute('if  0  then  123  else  999').AsExtended);
+end;
+
+procedure TestMiniH.TestMultipleStatements;
+begin
+  CheckEquals(512, MiniH.Instance.Execute('1 + 2; 7 * 4; 2 - 5; 2^9').AsExtended);
 end;
 
 initialization
