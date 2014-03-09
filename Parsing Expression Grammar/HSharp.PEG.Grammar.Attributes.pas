@@ -35,6 +35,9 @@ type
 
   RootRule = class(TCustomAttribute);
 
+  LazyRule = class(TCustomAttribute);
+
+
 implementation
 
 { RuleAttribute }

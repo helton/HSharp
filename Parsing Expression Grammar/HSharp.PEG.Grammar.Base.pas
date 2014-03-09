@@ -48,6 +48,8 @@ type
     function Parse(const aText: string): INode; virtual;
     function ParseAndVisit(const aText: string): TValue; virtual;
     function AsString: string;
+    function Visit(const aNode: INode): TValue; virtual;
+    property RuleMethodsDict: IDictionary<string, TRttiMethod> read FRuleMethodsDict;
   end;
 
 implementation
@@ -117,13 +119,19 @@ end;
 function TBaseGrammar.ParseAndVisit(const aText: string): TValue;
 var
   Node: INode;
-  NodeVisitor: INodeVisitor;
-  VisitableNode: IVisitableNode;
 begin
   Result := nil;
   Node := Parse(aText);
-  NodeVisitor := TGrammarNodeVisitor.Create(Self, FRuleMethodsDict);
-  if Supports(Node, IVisitableNode, VisitableNode) then
+  Result := Visit(Node);
+end;
+
+function TBaseGrammar.Visit(const aNode: INode): TValue;
+var
+  NodeVisitor: INodeVisitor;
+  VisitableNode: IVisitableNode;
+begin
+  NodeVisitor := TGrammarNodeVisitor.Create(Self, RuleMethodsDict); {TODO -oHelton -cOtimize : Otimize using Visitor as Lazy<INodeVisitor, TGrammarNodeVisitor>}
+  if Supports(aNode, IVisitableNode, VisitableNode) then
     Result := VisitableNode.Accept(NodeVisitor);
 end;
 

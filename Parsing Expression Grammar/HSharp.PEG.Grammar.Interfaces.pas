@@ -26,6 +26,7 @@ interface
 
 uses
   System.Rtti,
+  HSharp.Core.ArrayString,
   HSharp.Collections.Interfaces,
   HSharp.PEG.Node.Interfaces,
   HSharp.PEG.Rule.Interfaces;
@@ -36,12 +37,15 @@ type
     function AsString: string;
     function Parse(const aText: string): INode;
     function ParseAndVisit(const aText: string): TValue;
+    function Visit(const aNode: INode): TValue;
   end;
 
   IGrammar = interface(IBaseGrammar)
     ['{62382986-2D51-4205-ACC9-78615533CBDF}']
     function GetGrammarText: string;
+    function GetLazyRules: IArrayString;
     property GrammarText: string read GetGrammarText;
+    property LazyRules: IArrayString read GetLazyRules;
   end;
 
 implementation

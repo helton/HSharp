@@ -33,6 +33,7 @@ type
     ['{F2ABB719-B7B2-42DC-B398-5556F8672585}']
     procedure AddFormatted(const aItem: string; const aArgs: array of const);
     function AsString: string;
+    function Contains(const aItem: string): Boolean; {TODO -oHelton -cMove : Move to Array (use Generics.Defaults Equality interfaces to compare with generic)}
     procedure Indent(aLevel: Integer);
     function Join(aSeparator: string): string;
   end;
@@ -41,6 +42,7 @@ type
   public
     procedure AddFormatted(const aItem: string; const aArgs: array of const);
     function AsString: string;
+    function Contains(const aItem: string): Boolean;
     procedure Indent(aLevel: Integer);
     function Join(aSeparator: string): string;
   end;
@@ -60,6 +62,21 @@ end;
 function TArrayString.AsString: string;
 begin
   Result := Join(sLineBreak);
+end;
+
+function TArrayString.Contains(const aItem: string): Boolean;
+var
+  Found: Boolean;
+begin
+  Found := False;
+  ForEach(
+    procedure (const aCurrentItem: string)
+    begin
+      if not Found then
+        Found := SameText(aItem, aCurrentItem);
+    end
+  );
+  Result := Found;
 end;
 
 procedure TArrayString.Indent(aLevel: Integer);

@@ -25,6 +25,10 @@ unit HSharp.PEG.Grammar;
 interface
 
 uses
+  System.Rtti,
+  HSharp.Core.ArrayString,
+  HSharp.PEG.Node.Interfaces,
+  HSharp.PEG.Node.Visitors,
   HSharp.PEG.Rule.Interfaces,
   HSharp.PEG.Grammar.Base,
   HSharp.PEG.Grammar.Bootstrapping,
@@ -34,19 +38,24 @@ type
   TGrammar = class(TBaseGrammar, IGrammar)
   strict private
     FGrammarText: string;
-  strict protected
+    FLazyRules: IArrayString;
+  strict private
     procedure BuildGrammarText;
+    procedure BuildLazyRules;
+  strict protected
+    { IGrammar }
     function GetGrammarText: string;
+    function GetLazyRules: IArrayString;
   public
     constructor Create; reintroduce; virtual;
-    property GrammarText: string read FGrammarText;
+    function Visit(const aNode: INode): TValue; override;
   end;
 
 implementation
 
 uses
-  System.Rtti,
-  HSharp.Core.ArrayString,
+  System.StrUtils,
+  System.SysUtils,
   HSharp.Core.Rtti,
   HSharp.PEG.Grammar.Attributes;
 
@@ -70,11 +79,28 @@ begin
   FGrammarText := Grammar.AsString;
 end;
 
+procedure TGrammar.BuildLazyRules;
+var
+  Method: TRttiMethod;
+  Attribute: TCustomAttribute;
+begin
+  FLazyRules := TArrayString.Create;
+  for Method in RttiContext.GetType(ClassType).GetMethods do
+  begin
+    for Attribute in Method.GetAttributes do
+    begin
+      if Attribute is LazyRule then
+        FLazyRules.Add(RightStr(Method.Name, Method.Name.Length - 'Visit_'.Length)); //copy only rule name
+    end;
+  end;
+end;
+
 constructor TGrammar.Create;
 var
   BootstrappingGrammar: IBootstrappingGrammar;
 begin
   BuildGrammarText;
+  BuildLazyRules;
   BootstrappingGrammar := TBootstrappingGrammar.Create;
   inherited Create(BootstrappingGrammar.GetRules(FGrammarText));
 end;
@@ -82,6 +108,21 @@ end;
 function TGrammar.GetGrammarText: string;
 begin
   Result := FGrammarText;
+end;
+
+function TGrammar.GetLazyRules: IArrayString;
+begin
+  Result := FLazyRules;
+end;
+
+function TGrammar.Visit(const aNode: INode): TValue;
+var
+  NodeVisitor: INodeVisitor;
+  VisitableNode: IVisitableNode;
+begin
+  NodeVisitor := TGrammarNodeVisitor.Create(Self, RuleMethodsDict, FLazyRules); {TODO -oHelton -cOtimize : Otimize using Visitor as Lazy<INodeVisitor, TGrammarNodeVisitor>}
+  if Supports(aNode, IVisitableNode, VisitableNode) then
+    Result := VisitableNode.Accept(NodeVisitor);
 end;
 
 end.

@@ -34,6 +34,7 @@ type
     procedure Test;
     procedure TestMultipleStatements;
     procedure TestIf;
+    procedure TestFunctionDefinition;
   end;
 
 implementation
@@ -55,6 +56,12 @@ begin
   CheckEquals(9, MiniH.Instance.Execute('d = c = b + a').AsExtended);
   CheckEquals(9, MiniH.Instance.Execute('c').AsExtended);
   CheckEquals(9, MiniH.Instance.Execute('d').AsExtended);
+end;
+
+procedure TestMiniH.TestFunctionDefinition;
+begin
+  CheckTrue(MiniH.Instance.Execute('def sum(x, y) { x + y }').IsEmpty);
+  CheckEquals(199,  MiniH.Instance.Execute('sum(100, 99)').AsExtended);
 end;
 
 procedure TestMiniH.TestIf;

@@ -26,6 +26,7 @@ interface
 
 uses
   System.Rtti,
+  HSharp.Core.ArrayString,
   HSharp.Collections.Interfaces,
   HSharp.PEG.Grammar.Interfaces,
   HSharp.PEG.Node.Interfaces;
@@ -35,10 +36,13 @@ type
   strict private
     FGrammar: IBaseGrammar;
     FRuleMethodsDict: IDictionary<string, TRttiMethod>;
+    FLazyRules: IArrayString;
   strict protected
     function Visit(const aNode: INode): TValue;
   public
-    constructor Create(const aGrammar: IBaseGrammar; const aRuleMethodsDict: IDictionary<string, TRttiMethod>); reintroduce;
+    constructor Create(const aGrammar: IBaseGrammar;
+                       const aRuleMethodsDict: IDictionary<string, TRttiMethod>;
+                       const aLazyRules: IArrayString = nil); reintroduce;
   end;
 
   TPrinterNodeVisitor = class(TInterfacedObject, INodeVisitor)
@@ -54,17 +58,18 @@ uses
   Vcl.Dialogs, {TODO -oHelton -cRemove : Remove!}
   System.StrUtils,
   System.SysUtils,
-  HSharp.Core.ArrayString,
   HSharp.Core.Rtti;
 
 { TNodeVisitor }
 
 constructor TGrammarNodeVisitor.Create(const aGrammar: IBaseGrammar;
-  const aRuleMethodsDict: IDictionary<string, TRttiMethod>);
+  const aRuleMethodsDict: IDictionary<string, TRttiMethod>;
+  const aLazyRules: IArrayString);
 begin
   inherited Create;
   FGrammar := aGrammar;
   FRuleMethodsDict := aRuleMethodsDict;
+  FLazyRules := aLazyRules;
 end;
 
 function TGrammarNodeVisitor.Visit(const aNode: INode): TValue;
@@ -89,12 +94,18 @@ var
 
 var
   Method: TRttiMethod;
+  ShouldVisitChildren: Boolean;
 begin
   Result := nil;
   if Assigned(aNode.Children) then
   begin
-    for Child in aNode.Children do
-      Child.Value := (Child as IVisitableNode).Accept(Self); {TODO -oHelton -cQuestion : If is empty, add TValue.From<String>(Child.Text) ?}
+    ShouldVisitChildren := not Assigned(FLazyRules) or
+      aNode.Name.IsEmpty or not FLazyRules.Contains(aNode.Name);
+    if ShouldVisitChildren then
+    begin
+      for Child in aNode.Children do
+        Child.Value := (Child as IVisitableNode).Accept(Self); {TODO -oHelton -cQuestion : If is empty, add TValue.From<String>(Child.Text) ?}
+    end;
   end;
   if not aNode.Name.IsEmpty then
   begin
@@ -117,11 +128,11 @@ var
   Text: string;
 begin
   Arr := TArrayString.Create;
-  Text := aNode.Text.Replace(sLineBreak, '\n');
+  Text := IfThen(aNode.Text.IsEmpty, 'empty text', '"' + aNode.Text + '"').Replace(sLineBreak, '\n');
   if not aNode.Name.IsEmpty then
-    Arr.AddFormatted('<%s called "%s" matching "%s">', [IfThen(Supports(aNode, IRegexNode), 'RegexNode', 'Node'), aNode.Name, Text])
+    Arr.AddFormatted('<%s called "%s" matching %s>', [IfThen(Supports(aNode, IRegexNode), 'RegexNode', 'Node'), aNode.Name, Text])
   else
-    Arr.AddFormatted('<%s matching "%s">', [IfThen(Supports(aNode, IRegexNode), 'RegexNode', 'Node'), Text]);
+    Arr.AddFormatted('<%s matching %s>', [IfThen(Supports(aNode, IRegexNode), 'RegexNode', 'Node'), Text]);
   if Assigned(aNode.Children) then
   begin
     Inc(FIndent);
