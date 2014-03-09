@@ -1,3 +1,25 @@
+{***************************************************************************}
+{                                                                           }
+{           HSharp Framework for Delphi                                     }
+{                                                                           }
+{           Copyright (C) 2014 Helton Carlos de Souza                       }
+{                                                                           }
+{***************************************************************************}
+{                                                                           }
+{  Licensed under the Apache License, Version 2.0 (the "License");          }
+{  you may not use this file except in compliance with the License.         }
+{  You may obtain a copy of the License at                                  }
+{                                                                           }
+{      http://www.apache.org/licenses/LICENSE-2.0                           }
+{                                                                           }
+{  Unless required by applicable law or agreed to in writing, software      }
+{  distributed under the License is distributed on an "AS IS" BASIS,        }
+{  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. }
+{  See the License for the specific language governing permissions and      }
+{  limitations under the License.                                           }
+{                                                                           }
+{***************************************************************************}
+
 unit Language.MiniH;
 
 interface
@@ -89,11 +111,13 @@ type
     function Visit_Program(const aNode: INode): TValue;
     [Rule('statementList = statement statement_list:(";" statement)* ";"? _')]
     function Visit_StatementList(const aNode: INode): TValue;
-    [Rule('statement = _ stmt:(function | ifelse | expression) _')]
+    [Rule('statement = _ stmt:(function | ifelse | while | for | expression) _')]
     function Visit_Statement(const aNode: INode): TValue;
     [Rule('statementBlock = "{" _ statementList _ "}" _')]
     function Visit_StatementBlock(const aNode: INode): TValue;
-    [Rule('function = "def" _ identifier _ "(" _ parameters _ ")" _  body:(statement | statementBlock) _')]
+    [Rule('statementBody = statementBlock | statement')]
+    function Visit_StatementBody(const aNode: INode): TValue;
+    [Rule('function = "def" _ identifier _ "(" _ parameters _ ")" _  statementBody _')]
     [LazyRule]
     function Visit_Function(const aNode: INode): TValue;
     [Rule('parameters = identifier params:(_ "," _ identifier)* _')]
@@ -124,9 +148,15 @@ type
     function Visit_Identifier(const aNode: INode): TValue;
     [Rule('negate = "-"?')]
     function Visit_Negate(const aNode: INode): TValue;
-    [Rule('ifelse = "if" _ expression _ "then" _ statement elsePart:(_ "else" _ statement)?')]
+    [Rule('ifelse = "if" _ expression _ "then" _ statementBody elsePart:(_ "else" _ statementBody)?')]
     [LazyRule]
     function Visit_IfElse(const aNode: INode): TValue;
+    [Rule('while = "while" _ expression _ "do" _ statementBody')]
+    [LazyRule]
+    function Visit_While(const aNode: INode): TValue;
+    [Rule('for = "for" _ identifier _ "=" _ initialExp:expression _ "to" _ finalExp:expression _ "do" _ statementBody')]
+    [LazyRule]
+    function Visit_For(const aNode: INode): TValue;
     [Rule('call = identifier _ "(" _ arguments _ ")" _')]
     function Visit_Call(const aNode: INode): TValue;
     [Rule('arguments = expression _ args:(_ "," _ expression)* _')]
@@ -140,7 +170,9 @@ type
 implementation
 
 uses
-  System.Math;
+  FMX.Dialogs,
+  System.Math,
+  System.StrUtils;
 
 { TMiniH }
 
@@ -249,9 +281,9 @@ begin
     Arguments := aNode.Children['arguments'].Value.AsType<IArray<Extended>>;
     MethodScope := TScope.Create(Scope);
     if Method.Parameters.Count <> Arguments.Count then
-      raise EArgumentCountException.CreateFmt('Method "%s" expect %d parameters,' +
+      raise EArgumentCountException.CreateFmt('Method "%s" expect %d parameter%s,' +
         ' but %d got it.',
-        [MethodName, Method.Parameters.Count, Arguments.Count]);
+        [MethodName, Method.Parameters.Count, IfThen(Method.Parameters.Count > 1, 's'), Arguments.Count]);
     Method.Parameters.ForEachIndex(
       procedure (const aParam: string; aIndex: Integer)
       begin
@@ -310,6 +342,23 @@ begin
   end;
 end;
 
+function TMiniH.Visit_For(const aNode: INode): TValue;
+var
+  VariableName: string;
+  InitialValue: Extended;
+begin
+  Result := nil;
+  InitialValue := Visit(aNode.Children[6]).AsExtended;//initialExpr
+  VariableName := Visit(aNode.Children['identifier']).AsString;
+  Scope.Variables.AddOrSetValue(VariableName, InitialValue);
+  while Scope.Variables.Items[VariableName] <= Visit(aNode.Children[10]).AsExtended do //'finalExp'
+  begin
+    Result := Visit(aNode.Children['statementBody']);
+    Scope.Variables.AddOrSetValue(VariableName, Scope.Variables.Items[VariableName] + 1);
+  end;
+  Scope.Variables.Remove(VariableName); //loop variable is only available inside loop
+end;
+
 function TMiniH.Visit_Function(const aNode: INode): TValue;
 var
   Method: IMethod;
@@ -317,7 +366,7 @@ var
 begin
   MethodName := Visit(aNode.Children['identifier']).AsString;
   Method := TMethod.Create(Visit(aNode.Children['parameters']).AsType<IArrayString>,
-                           aNode.Children['body'].Children.First);
+                           aNode.Children['statementBody'].Children.First);
   Scope.Methods.AddOrSetValue(MethodName, Method); //overwrite the methods if it already exists
   Result := nil;
 end;
@@ -334,13 +383,13 @@ begin
   Result := nil;
   ExpressionValue := Visit(aNode.Children['expression']);
   if ExpressionValue.AsExtended <> 0 then
-    Result := Visit(aNode.Children['statement'])
+    Result := Visit(aNode.Children['statementBody'])
   else
   begin
     if Assigned(aNode.Children['elsePart'].Children) then
     begin
       Visit(aNode.Children['elsePart']);
-      Result := aNode.Children['elsePart'].Children.First.Children['statement'].Value;
+      Result := aNode.Children['elsePart'].Children.First.Children['statementBody'].Value;
     end;
   end;
 end;
@@ -395,6 +444,11 @@ begin
   Result := aNode.Children['statementList'].Value;
 end;
 
+function TMiniH.Visit_StatementBody(const aNode: INode): TValue;
+begin
+  Result := aNode.Children.First.Value;
+end;
+
 function TMiniH.Visit_StatementList(const aNode: INode): TValue;
 begin
   Result := aNode.Children['statement'].Value;
@@ -431,6 +485,13 @@ begin
   else
     raise EVariableNotDefinedException.CreateFmt('Variable "%s" is not defined in this ' +
       'scope', [VariableName]);
+end;
+
+function TMiniH.Visit_While(const aNode: INode): TValue;
+begin
+  Result := nil;
+  while Visit(aNode.Children['expression']).AsExtended <> 0 do
+    Result := Visit(aNode.Children['statementBody']);
 end;
 
 function TMiniH.Visit__(const aNode: INode): TValue;

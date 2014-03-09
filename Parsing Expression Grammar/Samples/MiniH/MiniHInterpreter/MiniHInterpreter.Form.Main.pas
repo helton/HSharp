@@ -1,3 +1,25 @@
+{***************************************************************************}
+{                                                                           }
+{           HSharp Framework for Delphi                                     }
+{                                                                           }
+{           Copyright (C) 2014 Helton Carlos de Souza                       }
+{                                                                           }
+{***************************************************************************}
+{                                                                           }
+{  Licensed under the Apache License, Version 2.0 (the "License");          }
+{  you may not use this file except in compliance with the License.         }
+{  You may obtain a copy of the License at                                  }
+{                                                                           }
+{      http://www.apache.org/licenses/LICENSE-2.0                           }
+{                                                                           }
+{  Unless required by applicable law or agreed to in writing, software      }
+{  distributed under the License is distributed on an "AS IS" BASIS,        }
+{  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. }
+{  See the License for the specific language governing permissions and      }
+{  limitations under the License.                                           }
+{                                                                           }
+{***************************************************************************}
+
 unit MiniHInterpreter.Form.Main;
 
 interface
@@ -11,7 +33,7 @@ type
   TFormInterpreter = class(TForm)
     StyleBook1: TStyleBook;
     tcInterpreter: TTabControl;
-    tiCommand: TTabItem;
+    tiInterpreter: TTabItem;
     tiAST: TTabItem;
     mmAST: TMemo;
     mmCommand: TMemo;
@@ -53,25 +75,28 @@ const
 var
   Value: TValue;
   Tree: INode;
-  ResulText: string;
+  ResultText: string;
 begin
   Inc(CommandCount);
-  mmHistory.Lines.Add(Format('[%d]>> %s', [CommandCount, mmCommand.Text.Trim]));
+  mmHistory.Lines.Add(Format('[%.3d]>> %s', [CommandCount, mmCommand.Text.Trim]));
   Tree := MiniH.Instance.Parse(mmCommand.Text);
   mmAST.Text := NodeToStr(Tree);
   try
-    Value := MiniH.Instance.Visit(Tree);
-  except
-    on E: Exception do
-      ResulText := '<Exception>: ' + E.Message;
+    try
+      Value := MiniH.Instance.Visit(Tree);
+      if Value.IsEmpty then
+        ResultText := 'null'
+      else
+        ResultText := Value.AsExtended.ToString;
+    except
+      on E: Exception do
+        ResultText := '<Exception>: ' + E.Message;
+    end;
+  finally
+    mmHistory.Lines.Add(StringOfChar('-', iSeparatorSize));
+    mmHistory.Lines.Add(ResultText);
+    mmHistory.Lines.Add(StringOfChar('=', iSeparatorSize));
   end;
-  mmHistory.Lines.Add(StringOfChar('-', iSeparatorSize));
-  if Value.IsEmpty then
-    ResulText := 'nil'
-  else
-    ResulText := Value.AsExtended.ToString;
-  mmHistory.Lines.Add(ResulText);
-  mmHistory.Lines.Add(StringOfChar('=', iSeparatorSize));
   mmHistory.GoToTextEnd;
   mmHistory.GoToLineBegin;
   mmCommand.Text := '';
@@ -83,7 +108,7 @@ end;
 procedure TFormInterpreter.FormActivate(Sender: TObject);
 begin
   mmCommand.SetFocus;
-  tcInterpreter.ActiveTab := tiCommand;
+  tcInterpreter.ActiveTab := tiInterpreter;
 end;
 
 procedure TFormInterpreter.FormCreate(Sender: TObject);
