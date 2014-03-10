@@ -1,0 +1,25 @@
+program = statementList
+statementList = statement statement_list:(";" statement)* ";"?  
+statement =  stmt:(function | ifelse | while | for | expression)  
+statementBlock = "{"  statementList  "}"  
+statementBody = statementBlock | statement
+function = "def"  identifier  "("  parameters  ")"   statementBody  
+parameters = identifier params:( ","  identifier)*  
+expression =  negate term term_list:( addOp term )*
+term = factor factor_list:( mulOp factor )*
+factor = atom atom_list:( expOp atom )*
+atom = call | parenthesizedExp | number | assignment | variable
+parenthesizedExp = "("  expression ")"  
+assignment = identifier "=" expression
+addOp = op:("+"|"-")  
+mulOp = op:("*"|"/")  
+expOp = op:("^"|"r")  
+number = num:/[0-9]*\.?[0-9]+(e[-+]?[0-9]+)?/  
+variable = identifier  
+identifier = id:/[a-z_][a-z0-9_]*/i  
+negate = "-"?
+ifelse = "if"  expression  "then"  statementBody elsePart:( "else"  statementBody)?
+while = "while"  expression  "do"  statementBody
+for = "for"  identifier  "="  initialExp:expression  "to"  finalExp:expression  "do"  statementBody
+call = identifier  "("  arguments  ")"  
+arguments = expression  args:( ","  expression)*  
