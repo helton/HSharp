@@ -406,7 +406,7 @@ end;
 
 function TMiniH.Visit_Number(const aNode: INode): TValue;
 begin
-  Result := aNode.Children['num'].Text.Replace('.', ',').ToExtended;
+  Result := aNode.Children['num'].Text.Replace('.', ',').ToExtended; {TODO -oHelton -cFix : Check locale before do the text replace}
 end;
 
 function TMiniH.Visit_Parameters(const aNode: INode): TValue;

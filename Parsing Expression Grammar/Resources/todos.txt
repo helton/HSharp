@@ -1,6 +1,10 @@
+(  ) - Fixed error when try define a name to an expression that is a rule reference
 (OK) - Add expression name in Node
 (  ) - Improve the unit tests
 (  ) - Improve error message with more details
+(  ) - when a rule is referenced but not defined -> raise an exception
+(  ) - Add warning messages
+  - when a rule is defined but not used
 (OK) - Add quantifiers expressions
   - OptionalExpression
   - OneOrMoreExpression
@@ -15,8 +19,8 @@
       function ID_Rule(const aNodes: array of INode): TValue;
 (OK) - TBaseVisitor should build the grammar based on custom attributes
 (OK) - Add Nodes
-(  ) - Add LazyEvaluation support (ex. IF statement cannot be computed until the user wants to)
-  - (  ) Create attribute LazyEvaluation to rules
+(OK) - Add LazyEvaluation support (ex. IF statement cannot be computed until the user wants to)
+  - (OK) Create attribute LazyEvaluation to rules
 (OK) - If after parse and context.EOF -> raise exception 
 (OK) - Add label to subexpressions:
   ex.: 'ID = part1:/[a-z_]+/il part2:/[a-z0-9_]/il'
