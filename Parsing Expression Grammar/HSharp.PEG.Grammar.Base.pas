@@ -58,7 +58,8 @@ uses
   System.SysUtils,
   HSharp.Core.Arrays,
   HSharp.Core.ArrayString,
-  HSharp.Core.Rtti;
+  HSharp.Core.Rtti,
+  HSharp.PEG.Utils;
 
 { TGrammar }
 
@@ -113,7 +114,8 @@ begin
   if not Context.Text.IsEmpty then
     raise EIncompleteParseError.CreateFmt('Rule "%s" matched in its entirely, ' +
       'but it didn''t consume all the text. The non-matching portion of the ' +
-      'text is "%s"', [FRootRule.Name, Context.Text]);
+      'text is "%s". The generated tree is ' + sLineBreak + '%s',
+      [FRootRule.Name, Context.Text, NodeToStr(Result)]);
 end;
 
 function TBaseGrammar.ParseAndVisit(const aText: string): TValue;

@@ -3,6 +3,9 @@
         <ProjectGuid>{D1DD3B0B-3CE2-4504-8008-D46EBAABBC57}</ProjectGuid>
     </PropertyGroup>
     <ItemGroup>
+        <Projects Include="..\..\HSharp.dproj">
+            <Dependencies/>
+        </Projects>
         <Projects Include="Calculator\Test\Calculator.Tests.dproj">
             <Dependencies/>
         </Projects>
@@ -20,6 +23,15 @@
             <Default.Personality/>
         </BorlandProject>
     </ProjectExtensions>
+    <Target Name="HSharp">
+        <MSBuild Projects="..\..\HSharp.dproj"/>
+    </Target>
+    <Target Name="HSharp:Clean">
+        <MSBuild Projects="..\..\HSharp.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="HSharp:Make">
+        <MSBuild Projects="..\..\HSharp.dproj" Targets="Make"/>
+    </Target>
     <Target Name="Calculator_Tests">
         <MSBuild Projects="Calculator\Test\Calculator.Tests.dproj"/>
     </Target>
@@ -48,13 +60,13 @@
         <MSBuild Projects="MiniH\MiniHInterpreter\MiniH.Interpreter.dproj" Targets="Make"/>
     </Target>
     <Target Name="Build">
-        <CallTarget Targets="Calculator_Tests;MiniH_Tests;MiniH_Interpreter"/>
+        <CallTarget Targets="HSharp;Calculator_Tests;MiniH_Tests;MiniH_Interpreter"/>
     </Target>
     <Target Name="Clean">
-        <CallTarget Targets="Calculator_Tests:Clean;MiniH_Tests:Clean;MiniH_Interpreter:Clean"/>
+        <CallTarget Targets="HSharp:Clean;Calculator_Tests:Clean;MiniH_Tests:Clean;MiniH_Interpreter:Clean"/>
     </Target>
     <Target Name="Make">
-        <CallTarget Targets="Calculator_Tests:Make;MiniH_Tests:Make;MiniH_Interpreter:Make"/>
+        <CallTarget Targets="HSharp:Make;Calculator_Tests:Make;MiniH_Tests:Make;MiniH_Interpreter:Make"/>
     </Target>
     <Import Project="$(BDS)\Bin\CodeGear.Group.Targets" Condition="Exists('$(BDS)\Bin\CodeGear.Group.Targets')"/>
 </Project>

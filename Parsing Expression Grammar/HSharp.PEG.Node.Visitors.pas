@@ -55,7 +55,6 @@ type
 implementation
 
 uses
-  Vcl.Dialogs, {TODO -oHelton -cRemove : Remove!}
   System.StrUtils,
   System.SysUtils,
   HSharp.Core.Rtti;

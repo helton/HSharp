@@ -50,6 +50,7 @@ type
     function GetRuleByName(const aRuleName: string): IRule; //to solve the lazy reference problem
   public
 {OK}function Visit__(const aNode: INode): TValue;
+{OK}function Visit_any(const aNode: INode): TValue;
 {OK}function Visit_assignment(const aNode: INode): TValue;
 {OK}function Visit_atom(const aNode: INode): TValue;
 {OK}function Visit_comment(const aNode: INode): TValue;
@@ -59,19 +60,25 @@ type
 {OK}function Visit_literal(const aNode: INode): TValue;
 {OK}function Visit_lookahead_term(const aNode: INode): TValue;
 {OK}function Visit_negative_lookahead_term(const aNode: INode): TValue;
+{OK}function Visit_optional(const aNode: INode): TValue;
 {OK}function Visit_or_term(const aNode: INode): TValue;
 {OK}function Visit_ored(const aNode: INode): TValue;
 {OK}function Visit_parenthesized(const aNode: INode): TValue;
 {OK}function Visit_quantified(const aNode: INode): TValue;
-{OK}function Visit_quantifier(const aNode: INode): TValue;
 {OK}function Visit_reference(const aNode: INode): TValue;
 {OK}function Visit_regex(const aNode: INode): TValue;
-{..}function Visit_repetition(const aNode: INode): TValue;
+{OK}function Visit_repeat_at_least(const aNode: INode): TValue;
+{OK}function Visit_repeat_exactly(const aNode: INode): TValue;
+{OK}function Visit_repeat_one_or_more(const aNode: INode): TValue;
+{OK}function Visit_repeat_range(const aNode: INode): TValue;
+{OK}function Visit_repeat_up_to(const aNode: INode): TValue;
+{OK}function Visit_repeat_zero_or_more(const aNode: INode): TValue;
 {OK}function Visit_rule(const aNode: INode): TValue;
 {OK}function Visit_rules(const aNode: INode): TValue;
 {OK}function Visit_sequence(const aNode: INode): TValue;
 {OK}function Visit_term(const aNode: INode): TValue;
 {OK}function Visit_term_label(const aNode: INode): TValue;
+{OK}function Visit_unsigned_int(const aNode: INode): TValue;
   public
     constructor Create; overload;
     { IBootstrappingGrammar }
@@ -81,9 +88,7 @@ type
 implementation
 
 uses
-  Vcl.Dialogs, {TODO -oHelton -cRemove : Remove!}
   HSharp.PEG.Node.Visitors,
-
   System.RegularExpressions,
   System.SysUtils;
 
@@ -93,6 +98,7 @@ constructor TBootstrappingGrammar.Create;
 var
   RulesList: IList<IRule>;
   _,
+  any,
   assignment,
   atom,
   comment,
@@ -102,23 +108,30 @@ var
   literal,
   lookahead_term,
   negative_lookahead_term,
+  optional,
   or_term,
   ored,
   parenthesized,
   quantified,
-  quantifier,
   reference,
   regex,
-  repetition,
+  repeat_at_least,
+  repeat_exactly,
+  repeat_one_or_more,
+  repeat_range,
+  repeat_up_to,
+  repeat_zero_or_more,
   rule,
   rules,
   sequence,
   term,
-  term_label: IRule;
+  term_label,
+  unsigned_int: IRule;
 
   procedure CreateRules;
   begin
     _                       := TRule.Create('_');
+    any                     := TRule.Create('any');
     assignment              := TRule.Create('assignment');
     atom                    := TRule.Create('atom');
     comment                 := TRule.Create('comment');
@@ -128,19 +141,25 @@ var
     literal                 := TRule.Create('literal');
     lookahead_term          := TRule.Create('lookahead_term');
     negative_lookahead_term := TRule.Create('negative_lookahead_term');
+    optional                := TRule.Create('optional');
     or_term                 := TRule.Create('or_term');
     ored                    := TRule.Create('ored');
     parenthesized           := TRule.Create('parenthesized');
     quantified              := TRule.Create('quantified');
-    quantifier              := TRule.Create('quantifier');
     reference               := TRule.Create('reference');
     regex                   := TRule.Create('regex');
-    repetition              := TRule.Create('repetition');
+    repeat_at_least         := TRule.Create('repeat_at_least');
+    repeat_exactly          := TRule.Create('repeat_exactly');
+    repeat_one_or_more      := TRule.Create('repeat_one_or_more');
+    repeat_range            := TRule.Create('repeat_range');
+    repeat_up_to            := TRule.Create('repeat_up_to');
+    repeat_zero_or_more     := TRule.Create('repeat_zero_or_more');
     rule                    := TRule.Create('rule');
     rules                   := TRule.Create('rules');
     sequence                := TRule.Create('sequence');
     term                    := TRule.Create('term');
     term_label              := TRule.Create('term_label');
+    unsigned_int            := TRule.Create('unsigned_int');
   end;
 
   procedure SetupRules;
@@ -151,18 +170,25 @@ var
        TRuleReferenceExpression.Create(comment)
       ]
     );
+    //any = "." _
+    any.Expression := TSequenceExpression.Create(
+      [TLiteralExpression.Create('.'),
+       TRuleReferenceExpression.Create(_)
+      ]
+    );
     //assignment = "=" _
     assignment.Expression := TSequenceExpression.Create(
       [TLiteralExpression.Create('='),
        TRuleReferenceExpression.Create(_)
       ]
     );
-    //atom = reference | literal | regex | parenthesized
+    //atom = reference | literal | regex | parenthesized | any
     atom.Expression := TOneOfExpression.Create(
       [TRuleReferenceExpression.Create(reference),
        TRuleReferenceExpression.Create(literal),
        TRuleReferenceExpression.Create(regex),
-       TRuleReferenceExpression.Create(parenthesized)
+       TRuleReferenceExpression.Create(parenthesized),
+       TRuleReferenceExpression.Create(any)
       ]
     );
     //comment = /#.*?(?:\r\n|$)/
@@ -174,12 +200,11 @@ var
        TRuleReferenceExpression.Create(term)
       ]
     );
-    //factor = lookahead_term | negative_lookahead_term | quantified | repetition | atom
+    //factor = lookahead_term | negative_lookahead_term | quantified | atom
     factor.Expression := TOneOfExpression.Create(
       [TRuleReferenceExpression.Create(lookahead_term),
        TRuleReferenceExpression.Create(negative_lookahead_term),
        TRuleReferenceExpression.Create(quantified),
-       TRuleReferenceExpression.Create(repetition),
        TRuleReferenceExpression.Create(atom)
       ]
     );
@@ -209,6 +234,13 @@ var
        TRuleReferenceExpression.Create(_)
       ]
     );
+    //optional = atom "?" _
+    optional.Expression := TSequenceExpression.Create(
+      [TRuleReferenceExpression.Create(atom),
+       TLiteralExpression.Create('?'),
+       TRuleReferenceExpression.Create(_)
+      ]
+    );
     //or_term = "|" _ term
     or_term.Expression := TSequenceExpression.Create(
       [TLiteralExpression.Create('|'),
@@ -233,16 +265,15 @@ var
        TRuleReferenceExpression.Create(_)
       ]
     );
-    //quantified = atom quantifier
-    quantified.Expression := TSequenceExpression.Create(
-      [TRuleReferenceExpression.Create(atom),
-       TRuleReferenceExpression.Create(quantifier)
-      ]
-    );
-    //quantifier = /[*+?]/ _
-    quantifier.Expression := TSequenceExpression.Create(
-      [TRegexExpression.Create('[*+?]'),
-       TRuleReferenceExpression.Create(_)
+    //quantified = repeat_exactly | repeat_range | repeat_at_least | repeat_up_to | repeat_zero_or_more | repeat_one_or_more | optional
+    quantified.Expression := TOneOfExpression.Create(
+      [TRuleReferenceExpression.Create(repeat_exactly),
+       TRuleReferenceExpression.Create(repeat_range),
+       TRuleReferenceExpression.Create(repeat_at_least),
+       TRuleReferenceExpression.Create(repeat_up_to),
+       TRuleReferenceExpression.Create(repeat_zero_or_more),
+       TRuleReferenceExpression.Create(repeat_one_or_more),
+       TRuleReferenceExpression.Create(optional)
       ]
     );
     //reference = identifier !assignment
@@ -260,12 +291,71 @@ var
        TRuleReferenceExpression.Create(_)
       ]
     );
-    //repetition = atom /{[0-9]+(\s*,\s*([0-9]+)?)?}/ _
-    repetition.Expression := TSequenceExpression.Create(
+    //repeat_at_least = atom "{" _ unsigned_int _ "," _ "}" _
+    repeat_at_least.Expression := TSequenceExpression.Create(
       [TRuleReferenceExpression.Create(atom),
-       TRegexExpression.Create('{[0-9]+(\s*,\s*([0-9]+)?)?}'),
+       TLiteralExpression.Create('{'),
+       TRuleReferenceExpression.Create(_),
+       TRuleReferenceExpression.Create(unsigned_int),
+       TRuleReferenceExpression.Create(_),
+       TLiteralExpression.Create(','),
+       TRuleReferenceExpression.Create(_),
+       TLiteralExpression.Create('}'),
        TRuleReferenceExpression.Create(_)
-      ]
+       ]
+    );
+    //repeat_exactly = atom "{" _ unsigned_int  _ "}" _
+    repeat_exactly.Expression := TSequenceExpression.Create(
+      [TRuleReferenceExpression.Create(atom),
+       TLiteralExpression.Create('{'),
+       TRuleReferenceExpression.Create(_),
+       TRuleReferenceExpression.Create(unsigned_int),
+       TRuleReferenceExpression.Create(_),
+       TLiteralExpression.Create('}'),
+       TRuleReferenceExpression.Create(_)
+       ]
+    );
+    //repeat_one_or_more = atom "+" _
+    repeat_one_or_more.Expression := TSequenceExpression.Create(
+      [TRuleReferenceExpression.Create(atom),
+       TLiteralExpression.Create('+'),
+       TRuleReferenceExpression.Create(_)
+       ]
+    );
+    //repeat_range = atom "{" _ unsigned_int _ "," _ unsigned_int _ "}" _
+    repeat_range.Expression := TSequenceExpression.Create(
+      [TRuleReferenceExpression.Create(atom),
+       TLiteralExpression.Create('{'),
+       TRuleReferenceExpression.Create(_),
+       TRuleReferenceExpression.Create(unsigned_int),
+       TRuleReferenceExpression.Create(_),
+       TLiteralExpression.Create(','),
+       TRuleReferenceExpression.Create(_),
+       TRuleReferenceExpression.Create(unsigned_int),
+       TRuleReferenceExpression.Create(_),
+       TLiteralExpression.Create('}'),
+       TRuleReferenceExpression.Create(_)
+       ]
+    );
+    //repeat_up_to = atom "{" _ "," _ unsigned_int _ "}" _
+    repeat_up_to.Expression := TSequenceExpression.Create(
+      [TRuleReferenceExpression.Create(atom),
+       TLiteralExpression.Create('{'),
+       TRuleReferenceExpression.Create(_),
+       TLiteralExpression.Create(','),
+       TRuleReferenceExpression.Create(_),
+       TRuleReferenceExpression.Create(unsigned_int),
+       TRuleReferenceExpression.Create(_),
+       TLiteralExpression.Create('}'),
+       TRuleReferenceExpression.Create(_)
+       ]
+    );
+    //repeat_zero_or_more = atom "*" _
+    repeat_zero_or_more.Expression := TSequenceExpression.Create(
+      [TRuleReferenceExpression.Create(atom),
+       TLiteralExpression.Create('*'),
+       TRuleReferenceExpression.Create(_)
+       ]
     );
     //rule = identifier assignment expression
     rule.Expression := TSequenceExpression.Create(
@@ -302,11 +392,18 @@ var
         ]
       )
     );
+    //unsigned_int = /[1-9][0-9]*/ _
+    unsigned_int.Expression := TSequenceExpression.Create(
+      [TRegexExpression.Create('[1-9][0-9]*'),
+       TRuleReferenceExpression.Create(_)
+      ]
+    );
   end;
 
   procedure AddRulesToList;
   begin
     RulesList.Add(_);
+    RulesList.Add(any);
     RulesList.Add(assignment);
     RulesList.Add(atom);
     RulesList.Add(comment);
@@ -316,19 +413,25 @@ var
     RulesList.Add(literal);
     RulesList.Add(lookahead_term);
     RulesList.Add(negative_lookahead_term);
+    RulesList.Add(optional);
     RulesList.Add(or_term);
     RulesList.Add(ored);
     RulesList.Add(parenthesized);
     RulesList.Add(quantified);
-    RulesList.Add(quantifier);
     RulesList.Add(reference);
     RulesList.Add(regex);
-    RulesList.Add(repetition);
+    RulesList.Add(repeat_at_least);
+    RulesList.Add(repeat_exactly);
+    RulesList.Add(repeat_one_or_more);
+    RulesList.Add(repeat_range);
+    RulesList.Add(repeat_up_to);
+    RulesList.Add(repeat_zero_or_more);
     RulesList.Add(rule);
     RulesList.Add(rules);
     RulesList.Add(sequence);
     RulesList.Add(term);
     RulesList.Add(term_label);
+    RulesList.Add(unsigned_int);
   end;
 
 begin
@@ -354,13 +457,18 @@ begin
   Result := ParseAndVisit(aGrammarText).AsType<IList<IRule>>;
 end;
 
+function TBootstrappingGrammar.Visit_any(const aNode: INode): TValue;
+begin
+  Result := TValue.From<IExpression>(TRegexExpression.Create('.'));
+end;
+
 function TBootstrappingGrammar.Visit_assignment(const aNode: INode): TValue;
 begin
 end;
 
 function TBootstrappingGrammar.Visit_atom(const aNode: INode): TValue;
 begin
-  Result := aNode.Children[0].Value;
+  Result := aNode.Children.First.Value;
 end;
 
 function TBootstrappingGrammar.Visit_comment(const aNode: INode): TValue;
@@ -369,17 +477,17 @@ end;
 
 function TBootstrappingGrammar.Visit_expression(const aNode: INode): TValue;
 begin
-  Result := aNode.Children[0].Value;
+  Result := aNode.Children.First.Value;
 end;
 
 function TBootstrappingGrammar.Visit_factor(const aNode: INode): TValue;
 begin
-  Result := aNode.Children[0].Value;
+  Result := aNode.Children.First.Value;
 end;
 
 function TBootstrappingGrammar.Visit_identifier(const aNode: INode): TValue;
 begin
-  Result := aNode.Children[0].Text;
+  Result := aNode.Children.First.Text;
 end;
 
 function TBootstrappingGrammar.Visit_literal(const aNode: INode): TValue;
@@ -392,7 +500,7 @@ function TBootstrappingGrammar.Visit_literal(const aNode: INode): TValue;
 
 begin
   Result := TValue.From<IExpression>(TLiteralExpression.Create(
-    ExtractLiteral(aNode.Children[0].Text)));
+    ExtractLiteral(aNode.Children.First.Text)));
 end;
 
 function TBootstrappingGrammar.Visit_lookahead_term(const aNode: INode): TValue;
@@ -403,6 +511,14 @@ end;
 function TBootstrappingGrammar.Visit_negative_lookahead_term(const aNode: INode): TValue;
 begin
   Result := TNegativeLookaheadExpression.Create(aNode.Children[1].Value.AsType<IExpression>);
+end;
+
+function TBootstrappingGrammar.Visit_optional(const aNode: INode): TValue;
+var
+  Atom: IExpression;
+begin
+  Atom := aNode.Children.First.Value.AsType<IExpression>;
+  Result := TValue.From<IExpression>(TOptionalExpression.Create(Atom));
 end;
 
 function TBootstrappingGrammar.Visit_ored(const aNode: INode): TValue;
@@ -418,7 +534,7 @@ var
 var
   ExpressionNode: INode;
 begin
-  AddExpressionToArray(aNode.Children[0].Value.AsType<IExpression>);
+  AddExpressionToArray(aNode.Children.First.Value.AsType<IExpression>);
   for ExpressionNode in aNode.Children[1].Children do
     AddExpressionToArray(ExpressionNode.Value.AsType<IExpression>);
   Result := TValue.From<IExpression>(TOneOfExpression.Create(Expressions));
@@ -436,28 +552,13 @@ begin
 end;
 
 function TBootstrappingGrammar.Visit_quantified(const aNode: INode): TValue;
-var
-  Quantifier: string;
-  Atom: IExpression;
 begin
-  Quantifier := aNode.Children[1].Children[0].Text;
-  Atom := aNode.Children[0].Value.AsType<IExpression>;
-  if Quantifier = '?' then
-    Result := TValue.From<IExpression>(TOptionalExpression.Create(Atom))
-  else if Quantifier = '*' then
-    Result := TValue.From<IExpression>(TRepeatZeroOrMoreExpression.Create(Atom))
-  else if Quantifier = '+' then
-    Result := TValue.From<IExpression>(TRepeatOneOrMoreExpression.Create(Atom));
-end;
-
-function TBootstrappingGrammar.Visit_quantifier(const aNode: INode): TValue;
-begin
-  Result := aNode.Children[0].Text;
+  Result := aNode.Children.First.Value;
 end;
 
 function TBootstrappingGrammar.Visit_reference(const aNode: INode): TValue;
 begin
-  Result := TRuleReferenceExpression.Create(GetRuleByName(aNode.Children[0].Value.AsString));
+  Result := TRuleReferenceExpression.Create(GetRuleByName(aNode.Children.First.Value.AsString));
 end;
 
 function TBootstrappingGrammar.Visit_regex(const aNode: INode): TValue;
@@ -482,20 +583,75 @@ begin
     RegexOptions := RegexOptions + [TRegExOption.roSingleLine];
   if aNode.Children[1].Text.Contains('p') then
     RegexOptions := RegexOptions + [TRegExOption.roIgnorePatternSpace];
-  Result := TRegexExpression.Create(ExtractRegexPattern(aNode.Children[0].Text),
+  Result := TRegexExpression.Create(ExtractRegexPattern(aNode.Children.First.Text),
      RegexOptions);
 end;
 
-function TBootstrappingGrammar.Visit_repetition(const aNode: INode): TValue;
+function TBootstrappingGrammar.Visit_repeat_at_least(
+  const aNode: INode): TValue;
+var
+  Atom: IExpression;
+  Min: Integer;
 begin
-  Result := nil;
+  Atom := aNode.Children.First.Value.AsType<IExpression>;
+  Min := aNode.Children[3].Value.AsInteger;
+  Result := TValue.From<IExpression>(TRepeatAtLeastExpression.Create(Atom, Min));
+end;
+
+function TBootstrappingGrammar.Visit_repeat_exactly(const aNode: INode): TValue;
+var
+  Atom: IExpression;
+  Times: Integer;
+begin
+  Atom := aNode.Children.First.Value.AsType<IExpression>;
+  Times := aNode.Children[3].Value.AsInteger;
+  Result := TValue.From<IExpression>(TRepeatExactlyExpression.Create(Atom, Times));
+end;
+
+function TBootstrappingGrammar.Visit_repeat_one_or_more(
+  const aNode: INode): TValue;
+var
+  Atom: IExpression;
+begin
+  Atom := aNode.Children.First.Value.AsType<IExpression>;
+  Result := TValue.From<IExpression>(TRepeatOneOrMoreExpression.Create(Atom));
+end;
+
+function TBootstrappingGrammar.Visit_repeat_range(const aNode: INode): TValue;
+var
+  Atom: IExpression;
+  Min, Max: Integer;
+begin
+  Atom := aNode.Children.First.Value.AsType<IExpression>;
+  Min := aNode.Children[3].Value.AsInteger;
+  Max := aNode.Children[7].Value.AsInteger;
+  Result := TValue.From<IExpression>(TRepeatRangeExpression.Create(Atom, Min, Max));
+end;
+
+function TBootstrappingGrammar.Visit_repeat_up_to(const aNode: INode): TValue;
+var
+  Atom: IExpression;
+  Max: Integer;
+begin
+  Atom := aNode.Children.First.Value.AsType<IExpression>;
+  Max := aNode.Children[5].Value.AsInteger;
+  Result := TValue.From<IExpression>(TRepeatUpToExpression.Create(Atom, Max));
+end;
+
+function TBootstrappingGrammar.Visit_repeat_zero_or_more(
+  const aNode: INode): TValue;
+var
+  Atom: IExpression;
+begin
+  Atom := aNode.Children.First.Value.AsType<IExpression>;
+  Result := TValue.From<IExpression>(TRepeatZeroOrMoreExpression.Create(Atom));
 end;
 
 function TBootstrappingGrammar.Visit_rule(const aNode: INode): TValue;
 var
   Rule: IRule;
 begin
-  Rule := GetRuleByName(aNode.Children[0].Value.AsString);
+  Rule := GetRuleByName(aNode.Children.First.Value.AsString);
   Rule.Expression := aNode.Children[2].Value.AsType<IExpression>;
   Result := TValue.From<IRule>(Rule);
 end;
@@ -524,7 +680,7 @@ var
 var
   ExpressionNode: INode;
 begin
-  AddExpressionToArray(aNode.Children[0].Value.AsType<IExpression>);
+  AddExpressionToArray(aNode.Children.First.Value.AsType<IExpression>);
   for ExpressionNode in aNode.Children[1].Children do
     AddExpressionToArray(ExpressionNode.Value.AsType<IExpression>);
   Result := TValue.From<IExpression>(TSequenceExpression.Create(Expressions));
@@ -546,7 +702,12 @@ function TBootstrappingGrammar.Visit_term_label(
 begin
   Result := nil;
   if Assigned(aNode.Children) then
-    Result := aNode.Children[0].Children['identifier'].Text;
+    Result := aNode.Children.First.Children['identifier'].Text;
+end;
+
+function TBootstrappingGrammar.Visit_unsigned_int(const aNode: INode): TValue;
+begin
+  Result := aNode.Children.First.Text.ToInteger;
 end;
 
 function TBootstrappingGrammar.Visit__(const aNode: INode): TValue;

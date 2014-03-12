@@ -45,6 +45,7 @@ type
   EArgumentCountException = class(Exception);
   {$SCOPEDENUMS ON}
   TOperation = (None, Addition, Subtraction, Multiplication, Division, Power, Radix);
+  TComparisonOperator = (Equal, NotEqual, GreaterThan, LessThan, GreaterOrEqualThan, LessOrEqualThan);
   {$SCOPEDENUMS OFF}
 
   {$ENDREGION}
@@ -102,6 +103,7 @@ type
     FScopeStack: IStack<IScope>;
   strict protected
     function StrToOperation(const aOperation: string): TOperation;
+    function StrToComparisonOperator(const aComparisonOperator: string): TComparisonOperator;
     function ExecuteOperation(aOperation: TOperation; aLeft, aRight: Extended): Extended;
     function Scope: IScope;
   public
@@ -148,10 +150,20 @@ type
     function Visit_Identifier(const aNode: INode): TValue;
     [Rule('negate = "-"?')]
     function Visit_Negate(const aNode: INode): TValue;
-    [Rule('ifelse = "if" _ expression _ "then" _ statementBody elsePart:(_ "else" _ statementBody)?')]
+    {$REGION 'Under development'}
+    [Rule('booleanExpression = booleanConstantExpression | booleanComparisonExpression | booleanNumericExpression')]
+    function Visit_BooleanExpression(const aNode: INode): TValue;
+    [Rule('booleanNumericExpression = expression _')]
+    function Visit_BooleanNumericExpression(const aNode: INode): TValue;
+    [Rule('booleanConstantExpression = "true" | "false"')]
+    function Visit_BooleanConstantExpression(const aNode: INode): TValue;
+    [Rule('booleanComparisonExpression = leftExpr:expression _ op:("=="|"!="|"<>"|">="|"<="|">"|"<") _ rightExpr:expression ')]
+    function Visit_BooleanComparisonExpression(const aNode: INode): TValue;
+    {$ENDREGION'}
+    [Rule('ifelse = "if" _ booleanExpression _ "then" _ statementBody elsePart:(_ "else" _ statementBody)?')]
     [LazyRule]
     function Visit_IfElse(const aNode: INode): TValue;
-    [Rule('while = "while" _ expression _ "do" _ statementBody')]
+    [Rule('while = "while" _ booleanExpression _ "do" _ statementBody')]
     [LazyRule]
     function Visit_While(const aNode: INode): TValue;
     [Rule('for = "for" _ identifier _ "=" _ initialExp:expression _ "to" _ finalExp:expression _ "do" _ statementBody')]
@@ -172,7 +184,9 @@ implementation
 uses
   FMX.Dialogs,
   System.Math,
-  System.StrUtils;
+  System.StrUtils,
+  System.Typinfo,
+  HSharp.PEG.Utils;
 
 { TMiniH }
 
@@ -185,6 +199,7 @@ end;
 
 function TMiniH.Execute(const aExpression: string): TValue;
 begin
+  ShowMessage(NodeToStr(Parse(aExpression)));
   Result := ParseAndVisit(aExpression);
 end;
 
@@ -212,6 +227,25 @@ end;
 function TMiniH.Scope: IScope;
 begin
   Result := FScopeStack.Peek;
+end;
+
+function TMiniH.StrToComparisonOperator(
+  const aComparisonOperator: string): TComparisonOperator;
+begin
+  Result := TComparisonOperator.Equal;
+  if aComparisonOperator = '==' then
+    Result := TComparisonOperator.Equal
+  else if (aComparisonOperator = '!=') or
+          (aComparisonOperator = '<>') then
+    Result := TComparisonOperator.NotEqual
+  else if aComparisonOperator = '>=' then
+    Result := TComparisonOperator.GreaterOrEqualThan
+  else if aComparisonOperator = '<=' then
+    Result := TComparisonOperator.LessOrEqualThan
+  else if aComparisonOperator = '>' then
+    Result := TComparisonOperator.GreaterThan
+  else if aComparisonOperator = '<' then
+    Result := TComparisonOperator.LessThan
 end;
 
 function TMiniH.StrToOperation(const aOperation: string): TOperation;
@@ -266,6 +300,45 @@ end;
 function TMiniH.Visit_Atom(const aNode: INode): TValue;
 begin
   Result := aNode.Children.First.Value.AsExtended;
+end;
+
+function TMiniH.Visit_BooleanComparisonExpression(const aNode: INode): TValue;
+var
+  LeftExpression, RightExpression: Extended;
+begin
+  LeftExpression := aNode.Children[0].Value.AsExtended;  //left_expr
+  RightExpression := aNode.Children[2].Value.AsExtended; //right_expr
+  case StrToComparisonOperator(aNode.Children['op'].Text)  of
+    TComparisonOperator.Equal:
+      Result := LeftExpression = RightExpression;
+    TComparisonOperator.NotEqual:
+      Result := LeftExpression <> RightExpression;
+    TComparisonOperator.GreaterThan:
+      Result := LeftExpression > RightExpression;
+    TComparisonOperator.LessThan:
+      Result := LeftExpression < RightExpression;
+    TComparisonOperator.GreaterOrEqualThan:
+      Result := LeftExpression >= RightExpression;
+    TComparisonOperator.LessOrEqualThan:
+      Result := LeftExpression <= RightExpression
+    else
+      Result := False;
+  end;
+end;
+
+function TMiniH.Visit_BooleanConstantExpression(const aNode: INode): TValue;
+begin
+  Result := aNode.Text = 'true';
+end;
+
+function TMiniH.Visit_BooleanExpression(const aNode: INode): TValue;
+begin
+  Result := aNode.Children.First.Value;
+end;
+
+function TMiniH.Visit_BooleanNumericExpression(const aNode: INode): TValue;
+begin
+  Result := aNode.Children['expression'].Value.AsExtended <> 0;
 end;
 
 function TMiniH.Visit_Call(const aNode: INode): TValue;
@@ -381,8 +454,8 @@ var
   ExpressionValue: TValue;
 begin
   Result := nil;
-  ExpressionValue := Visit(aNode.Children['expression']);
-  if ExpressionValue.AsExtended <> 0 then
+  ExpressionValue := Visit(aNode.Children['booleanExpression']);
+  if ExpressionValue.AsBoolean then
     Result := Visit(aNode.Children['statementBody'])
   else
   begin
@@ -490,7 +563,7 @@ end;
 function TMiniH.Visit_While(const aNode: INode): TValue;
 begin
   Result := nil;
-  while Visit(aNode.Children['expression']).AsExtended <> 0 do
+  while Visit(aNode.Children['booleanExpression']).AsBoolean do
     Result := Visit(aNode.Children['statementBody']);
 end;
 

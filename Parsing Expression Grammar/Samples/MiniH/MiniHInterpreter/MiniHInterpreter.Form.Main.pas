@@ -100,9 +100,6 @@ begin
   mmHistory.GoToTextEnd;
   mmHistory.GoToLineBegin;
   mmCommand.Text := '';
-  mmCommand.GoToTextEnd;
-  mmHistory.GoToLineBegin;
-  mmCommand.SetFocus;
 end;
 
 procedure TFormInterpreter.FormActivate(Sender: TObject);

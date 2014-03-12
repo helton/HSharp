@@ -24,7 +24,7 @@
 (OK) - If after parse and context.EOF -> raise exception 
 (OK) - Add label to subexpressions:
   ex.: 'ID = part1:/[a-z_]+/il part2:/[a-z0-9_]/il'
-(..) - Add multiple repetition (like regex, vide Citrus)
+(OK) - Add multiple repetition (like regex, vide Citrus)
 (  ) - fix comment support
 (  )  - Add multiline comment option
 

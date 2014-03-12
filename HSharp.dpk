@@ -1,0 +1,102 @@
+package HSharp;
+
+{$R *.res}
+{$IFDEF IMPLICITBUILDING This IFDEF should not be used by users}
+{$ALIGN 8}
+{$ASSERTIONS ON}
+{$BOOLEVAL OFF}
+{$DEBUGINFO ON}
+{$EXTENDEDSYNTAX ON}
+{$IMPORTEDDATA ON}
+{$IOCHECKS ON}
+{$LOCALSYMBOLS ON}
+{$LONGSTRINGS ON}
+{$OPENSTRINGS ON}
+{$OPTIMIZATION ON}
+{$OVERFLOWCHECKS OFF}
+{$RANGECHECKS OFF}
+{$REFERENCEINFO ON}
+{$SAFEDIVIDE OFF}
+{$STACKFRAMES OFF}
+{$TYPEDADDRESS OFF}
+{$VARSTRINGCHECKS ON}
+{$WRITEABLECONST OFF}
+{$MINENUMSIZE 1}
+{$IMAGEBASE $400000}
+{$ENDIF IMPLICITBUILDING}
+{$RUNONLY}
+{$IMPLICITBUILD OFF}
+
+requires
+  rtl,
+  DbxCommonDriver,
+  dbexpress;
+
+contains
+  HSharp.Collections.Dictionary in 'Collections\HSharp.Collections.Dictionary.pas',
+  HSharp.Collections.Interfaces.Internal in 'Collections\HSharp.Collections.Interfaces.Internal.pas',
+  HSharp.Collections.Interfaces in 'Collections\HSharp.Collections.Interfaces.pas',
+  HSharp.Collections.Internal in 'Collections\HSharp.Collections.Internal.pas',
+  HSharp.Collections.List in 'Collections\HSharp.Collections.List.pas',
+  HSharp.Collections.ObjectList in 'Collections\HSharp.Collections.ObjectList.pas',
+  HSharp.Collections in 'Collections\HSharp.Collections.pas',
+  HSharp.Collections.Stack in 'Collections\HSharp.Collections.Stack.pas',
+  HSharp.Core.Arrays in 'Core\HSharp.Core.Arrays.pas',
+  HSharp.Core.ArrayString in 'Core\HSharp.Core.ArrayString.pas',
+  HSharp.Core.Assert in 'Core\HSharp.Core.Assert.pas',
+  HSharp.Core.Benchmarker in 'Core\HSharp.Core.Benchmarker.pas',
+  HSharp.Core.Functions in 'Core\HSharp.Core.Functions.pas',
+  HSharp.Core.Lazy in 'Core\HSharp.Core.Lazy.pas',
+  HSharp.Core.Memoize in 'Core\HSharp.Core.Memoize.pas',
+  HSharp.Core.Nullable in 'Core\HSharp.Core.Nullable.pas',
+  HSharp.Core.RegularExpressions in 'Core\HSharp.Core.RegularExpressions.pas',
+  HSharp.Core.Rtti in 'Core\HSharp.Core.Rtti.pas',
+  HSharp.Core.SmartPointer in 'Core\HSharp.Core.SmartPointer.pas',
+  HSharp.Core.Types in 'Core\HSharp.Core.Types.pas',
+  HSharp.Core.Version in 'Core\HSharp.Core.Version.pas',
+  HSharp.Core.Wrapper in 'Core\HSharp.Core.Wrapper.pas',
+  HSharp.Container.Exceptions in 'Dependency Injection\HSharp.Container.Exceptions.pas',
+  HSharp.Container.Impl in 'Dependency Injection\HSharp.Container.Impl.pas',
+  HSharp.Container.Interfaces in 'Dependency Injection\HSharp.Container.Interfaces.pas',
+  HSharp.Container in 'Dependency Injection\HSharp.Container.pas',
+  HSharp.Container.Types in 'Dependency Injection\HSharp.Container.Types.pas',
+  HSharp.DesignPatterns.Singleton in 'Design Patterns\HSharp.DesignPatterns.Singleton.pas',
+  HSharp.Database.Connection.Factory in 'ORM\HSharp.Database.Connection.Factory.pas',
+  HSharp.Database.Connection.Firebird in 'ORM\HSharp.Database.Connection.Firebird.pas',
+  HSharp.Database.Connection.Interfaces in 'ORM\HSharp.Database.Connection.Interfaces.pas',
+  HSharp.Database.Connection.Setup in 'ORM\HSharp.Database.Connection.Setup.pas',
+  HSharp.Database.Connection.SQLite in 'ORM\HSharp.Database.Connection.SQLite.pas',
+  HSharp.Database.Types in 'ORM\HSharp.Database.Types.pas',
+  HSharp.Engine.ObjectManager in 'ORM\HSharp.Engine.ObjectManager.pas',
+  HSharp.Mapping.Attributes in 'ORM\HSharp.Mapping.Attributes.pas',
+  HSharp.Mapping.Exceptions in 'ORM\HSharp.Mapping.Exceptions.pas',
+  HSharp.Mapping.Metadata in 'ORM\HSharp.Mapping.Metadata.pas',
+  HSharp.Patterns.UnitOfWork in 'ORM\HSharp.Patterns.UnitOfWork.pas',
+  HSharp.PEG.Context.Interfaces in 'Parsing Expression Grammar\HSharp.PEG.Context.Interfaces.pas',
+  HSharp.PEG.Context in 'Parsing Expression Grammar\HSharp.PEG.Context.pas',
+  HSharp.PEG.Exceptions in 'Parsing Expression Grammar\HSharp.PEG.Exceptions.pas',
+  HSharp.PEG.Expression.Interfaces in 'Parsing Expression Grammar\HSharp.PEG.Expression.Interfaces.pas',
+  HSharp.PEG.Expression in 'Parsing Expression Grammar\HSharp.PEG.Expression.pas',
+  HSharp.PEG.Grammar.Attributes in 'Parsing Expression Grammar\HSharp.PEG.Grammar.Attributes.pas',
+  HSharp.PEG.Grammar.Base in 'Parsing Expression Grammar\HSharp.PEG.Grammar.Base.pas',
+  HSharp.PEG.Grammar.Bootstrapping in 'Parsing Expression Grammar\HSharp.PEG.Grammar.Bootstrapping.pas',
+  HSharp.PEG.Grammar.Interfaces in 'Parsing Expression Grammar\HSharp.PEG.Grammar.Interfaces.pas',
+  HSharp.PEG.Grammar in 'Parsing Expression Grammar\HSharp.PEG.Grammar.pas',
+  HSharp.PEG.Node.Interfaces in 'Parsing Expression Grammar\HSharp.PEG.Node.Interfaces.pas',
+  HSharp.PEG.Node in 'Parsing Expression Grammar\HSharp.PEG.Node.pas',
+  HSharp.PEG.Node.Visitors in 'Parsing Expression Grammar\HSharp.PEG.Node.Visitors.pas',
+  HSharp.PEG.Rule.Interfaces in 'Parsing Expression Grammar\HSharp.PEG.Rule.Interfaces.pas',
+  HSharp.PEG.Rule in 'Parsing Expression Grammar\HSharp.PEG.Rule.pas',
+  HSharp.PEG.Utils in 'Parsing Expression Grammar\HSharp.PEG.Utils.pas',
+  HSharp.Behaviour.Interfaces in 'Testing\HSharp.Behaviour.Interfaces.pas',
+  HSharp.Behaviour in 'Testing\HSharp.Behaviour.pas',
+  HSharp.Exceptions in 'Testing\HSharp.Exceptions.pas',
+  HSharp.Mock.Interfaces in 'Testing\HSharp.Mock.Interfaces.pas',
+  HSharp.Mock in 'Testing\HSharp.Mock.pas',
+  HSharp.Proxy.Interfaces in 'Testing\HSharp.Proxy.Interfaces.pas',
+  HSharp.Proxy in 'Testing\HSharp.Proxy.pas',
+  HSharp.Stub.Interfaces in 'Testing\HSharp.Stub.Interfaces.pas',
+  HSharp.Stub in 'Testing\HSharp.Stub.pas',
+  HSharp.WeakReference in 'WeakReferences\HSharp.WeakReference.pas';
+
+end.
