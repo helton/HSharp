@@ -120,7 +120,7 @@ type
     function Visit_Program(const aNode: INode): TValue;
     [Rule('statementList = statement statement_list:(";" statement)* ";"? _')]
     function Visit_StatementList(const aNode: INode): TValue;
-    [Rule('statement = _ stmt:(function | ifelse | while | for | expression) _')]
+    [Rule('statement = _ stmt:(function | expression) _')]
     function Visit_Statement(const aNode: INode): TValue;
     [Rule('statementBlock = "{" _ statementList _ "}" _')]
     function Visit_StatementBlock(const aNode: INode): TValue;
@@ -131,8 +131,10 @@ type
     function Visit_Function(const aNode: INode): TValue;
     [Rule('parameters = identifier params:(_ "," _ identifier)* _')]
     function Visit_Parameters(const aNode: INode): TValue;
-    [Rule('expression = _ negate term term_list:( addOp term )*')]
+    [Rule('expression = ifElse | while | for | simpleExpression')]
     function Visit_Expression(const aNode: INode): TValue;
+    [Rule('simpleExpression = _ negate term term_list:( addOp term )*')]
+    function Visit_SimpleExpression(const aNode: INode): TValue;
     [Rule('term = factor factor_list:( mulOp factor )*')]
     function Visit_Term(const aNode: INode): TValue;
     [Rule('factor = atom atom_list:( expOp atom )*')]
@@ -203,7 +205,7 @@ type
     function Visit_BooleanNegateOperator(const aNode: INode): TValue;
     [Rule('booleanConstant = bool_const:("true" | "false") _')]
     function Visit_BooleanConstant(const aNode: INode): TValue;
-    [Rule('ifelse = "if" _ booleanExpression _ ( "then" _ )? statementBody elsePart:(_ "else" _ statementBody)?')]
+    [Rule('ifElse = "if" _ booleanExpression _ ( "then" _ )? statementBody elsePart:(_ "else" _ statementBody)?')]
     [LazyRule]
     function Visit_IfElse(const aNode: INode): TValue;
     [Rule('while = "while" _ booleanExpression _ ( "do" _ )? statementBody')]
@@ -563,23 +565,8 @@ begin
 end;
 
 function TMiniH.Visit_Expression(const aNode: INode): TValue;
-var
-  ChildNode: INode;
 begin
-  Result := aNode.Children['term'].Value.AsExtended;
-  if Assigned(aNode.Children['term_list'].Children) then
-  begin
-    for ChildNode in aNode.Children['term_list'].Children do
-    begin
-      Result := ApplyArithmeticOperator(
-        ChildNode.Children['addOp'].Value.AsType<TArithmeticOperator>,
-        Result.AsExtended,
-        ChildNode.Children['term'].Value.AsExtended
-      );
-    end;
-  end;
-  if aNode.Children['negate'].Value.AsBoolean then
-    Result := -Result.AsExtended;
+  Result := aNode.Children.First.Value;
 end;
 
 function TMiniH.Visit_Factor(const aNode: INode): TValue;
@@ -784,6 +771,26 @@ end;
 function TMiniH.Visit_SimpleBooleanExpression(const aNode: INode): TValue;
 begin
   Result := aNode.Children.First.Value;
+end;
+
+function TMiniH.Visit_SimpleExpression(const aNode: INode): TValue;
+var
+  ChildNode: INode;
+begin
+  Result := aNode.Children['term'].Value.AsExtended;
+  if Assigned(aNode.Children['term_list'].Children) then
+  begin
+    for ChildNode in aNode.Children['term_list'].Children do
+    begin
+      Result := ApplyArithmeticOperator(
+        ChildNode.Children['addOp'].Value.AsType<TArithmeticOperator>,
+        Result.AsExtended,
+        ChildNode.Children['term'].Value.AsExtended
+      );
+    end;
+  end;
+  if aNode.Children['negate'].Value.AsBoolean then
+    Result := -Result.AsExtended;
 end;
 
 function TMiniH.Visit_Statement(const aNode: INode): TValue;

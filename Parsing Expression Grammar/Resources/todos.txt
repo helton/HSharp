@@ -1,12 +1,57 @@
-(  ) - add AND and OR on boolean expressions
+(  ) - study ECMA Script syntax (JS syntax) <http://www-archive.mozilla.org/js/language/grammar14.html>
+(  ) - fix boolean expression:
+  why is it not working?
+
+    a = 1;
+    i = 10;
+    result = while --i <= 0 {
+      a *= i
+    }
+
+(  ) - validate type on specific assignments (like "DIV" | "/" can be used only with integers? -> check C language)
+(  ) - check remanescent compound assignements
+(  ) - check "~" operator... is it like a "not" operator?
+(  ) - create lambda/anonymous functions
+(  ) - allow everything to be assign to a variable (need support toall types below specified)
+(  ) - create (and validate if "break" and "continue" are inside a loop)
+  ternaryExpression = booleanExpression _ "?" _ true_stmt:statement _ ":" _ false_stmt:statement
+  breakStatement = "break"
+  continueStatement = "continue"
+  passStatement = "pass"
+  loopStatement = "loop" _ statementBody _
+  doWhileStatement = "do" _ booleanExpression _  statementBody _ "while" _ boolean_expression
+  repeatStatement = "repeat" _ statementBody _ "until" _ boolean_expression
+(  ) - add FOR ELSE like Python
+(  ) - add list Compreenshion
+(  ) - add blocks like Rubys
+(  ) - add support to ARRAYS and HASHS
+(  ) - create the builtin types:
+   String
+   Integer
+   Float
+   Boolean
+   Method
+   Regex
+   Array
+   Hash
+ ? Block
+ ? Char
+ ? Range
 (  ) - create wrapper (boxing) to supported types (string, integer, float, boolean, anonymous method) -> all they should have a "AsString" function (to print on "terminal")
+(  ) - add bitwise operator support?
+(  ) - "think" about add lazy evaluation to everything (everything will be computed only if it'll be used)
+(  ) - rename language (What about "HSharp" again?)
+(  ) - fix comment support
+(  ) - Add multiline comment option
 (  ) - Fixed error when try define a name to an expression that is a rule reference
-(OK) - Add expression name in Node
 (  ) - Improve the unit tests
 (  ) - Improve error message with more details
 (  ) - when a rule is referenced but not defined -> raise an exception
 (  ) - Add warning messages
   - when a rule is defined but not used
+(OK) - Add compound assignments
+(OK) - Add expression name in Node
+(OK) - add AND and OR on boolean expressions
 (OK) - Add quantifiers expressions
   - OptionalExpression
   - OneOrMoreExpression
@@ -27,21 +72,3 @@
 (OK) - Add label to subexpressions:
   ex.: 'ID = part1:/[a-z_]+/il part2:/[a-z0-9_]/il'
 (OK) - Add multiple repetition (like regex, vide Citrus)
-(  ) - fix comment support
-(  )  - Add multiline comment option
-
-[Rule('IF = "if" _ expr _ stmt ( "else" _ stmt ) ?')]
-[LazyEvaluation]
-function IF(const aNode: INode): TValue;
-var
-  ElseNode: INode
-begin
-  if aNode.Child[2].AsBoolean then //if aNode.Child['expr'].AsBoolean
-    Result := aNode.Child[4].Call
-  else
-  begin
-    ElseNode = aNode.Child[5];
-    if not ElseNode.IsEmpty then // or if Assigned(ElseNode) then ?
-      Result := ElseNode.Child[3].Call;
-  end;
-end;
