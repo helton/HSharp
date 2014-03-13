@@ -28,8 +28,10 @@ uses
   System.SysUtils;
 
 type
-  EMatchError = class(Exception);
-  EIncompleteParseError = class(Exception);
+  EPEGError = class(Exception);
+  EMatchError = class(EPEGError);
+  EIncompleteParseError = class(EPEGError);
+  EUnexpectedEndOfFileError = class(EPEGError);
 
 implementation
 

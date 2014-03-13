@@ -47,7 +47,7 @@ type
     function GetGrammarText: string;
     function GetLazyRules: IArrayString;
   public
-    constructor Create; reintroduce; virtual;
+    constructor Create; overload; virtual;
     function Visit(const aNode: INode): TValue; override;
   end;
 

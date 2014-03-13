@@ -1,3 +1,5 @@
+(  ) - add AND and OR on boolean expressions
+(  ) - create wrapper (boxing) to supported types (string, integer, float, boolean, anonymous method) -> all they should have a "AsString" function (to print on "terminal")
 (  ) - Fixed error when try define a name to an expression that is a rule reference
 (OK) - Add expression name in Node
 (  ) - Improve the unit tests

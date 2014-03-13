@@ -15,6 +15,9 @@
         <Projects Include="MiniH\MiniHInterpreter\MiniH.Interpreter.dproj">
             <Dependencies/>
         </Projects>
+        <Projects Include="AST\AST.dproj">
+            <Dependencies/>
+        </Projects>
     </ItemGroup>
     <ProjectExtensions>
         <Borland.Personality>Default.Personality.12</Borland.Personality>
@@ -59,14 +62,23 @@
     <Target Name="MiniH_Interpreter:Make">
         <MSBuild Projects="MiniH\MiniHInterpreter\MiniH.Interpreter.dproj" Targets="Make"/>
     </Target>
+    <Target Name="AST">
+        <MSBuild Projects="AST\AST.dproj"/>
+    </Target>
+    <Target Name="AST:Clean">
+        <MSBuild Projects="AST\AST.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="AST:Make">
+        <MSBuild Projects="AST\AST.dproj" Targets="Make"/>
+    </Target>
     <Target Name="Build">
-        <CallTarget Targets="HSharp;Calculator_Tests;MiniH_Tests;MiniH_Interpreter"/>
+        <CallTarget Targets="HSharp;Calculator_Tests;MiniH_Tests;MiniH_Interpreter;AST"/>
     </Target>
     <Target Name="Clean">
-        <CallTarget Targets="HSharp:Clean;Calculator_Tests:Clean;MiniH_Tests:Clean;MiniH_Interpreter:Clean"/>
+        <CallTarget Targets="HSharp:Clean;Calculator_Tests:Clean;MiniH_Tests:Clean;MiniH_Interpreter:Clean;AST:Clean"/>
     </Target>
     <Target Name="Make">
-        <CallTarget Targets="HSharp:Make;Calculator_Tests:Make;MiniH_Tests:Make;MiniH_Interpreter:Make"/>
+        <CallTarget Targets="HSharp:Make;Calculator_Tests:Make;MiniH_Tests:Make;MiniH_Interpreter:Make;AST:Make"/>
     </Target>
     <Import Project="$(BDS)\Bin\CodeGear.Group.Targets" Condition="Exists('$(BDS)\Bin\CodeGear.Group.Targets')"/>
 </Project>

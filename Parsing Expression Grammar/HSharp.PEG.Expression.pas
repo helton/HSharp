@@ -242,7 +242,7 @@ begin
   try
     Result := ApplyExpression(aContext) <> nil;
   except
-    on EMatchError do
+    on EPEGError do
       Result := False
     else
       raise;
@@ -257,8 +257,13 @@ begin
   SavedIndex := aContext.Index;
   Result := ApplyExpression(aContext);
   if not Assigned(Result) then
-    raise EMatchError.Create('[' + FName + '] - Can''t match text at position ' +
-      SavedIndex.ToString + ' after "' + LeftStr(aContext.Text, 100) + '" ...');
+  begin
+    if aContext.Text.IsEmpty then
+      raise EUnexpectedEndOfFileError.Create(IfThen(not FName.IsEmpty, '[' + FName + '] - ') + 'Unexpected end of file')
+    else
+      raise EMatchError.Create(IfThen(not FName.IsEmpty, '[' + FName + '] - ') + 'Cannot match text at position ' +
+        SavedIndex.ToString + ' after "' + aContext.Text + '"');
+  end;
 end;
 
 procedure TExpression.SetName(const aName: string);

@@ -44,8 +44,10 @@ type
   EMethodNotDefinedException = class(Exception);
   EArgumentCountException = class(Exception);
   {$SCOPEDENUMS ON}
-  TOperation = (None, Addition, Subtraction, Multiplication, Division, Power, Radix);
-  TComparisonOperator = (Equal, NotEqual, GreaterThan, LessThan, GreaterOrEqualThan, LessOrEqualThan);
+  TArithmeticOperator = (None, Addition, Subtraction, Multiplication, Division, Power, Radix);
+  TRelationalOperator = (None, Equal, NotEqual, GreaterThan, LessThan, GreaterOrEqualThan, LessOrEqualThan);
+  TLogicalOperator = (None, LogicalAnd, LogicalOr, LogicalXor);
+  TIncrementDecrementOperator = (Increment, Decrement);
   {$SCOPEDENUMS OFF}
 
   {$ENDREGION}
@@ -102,9 +104,10 @@ type
   strict private
     FScopeStack: IStack<IScope>;
   strict protected
-    function StrToOperation(const aOperation: string): TOperation;
-    function StrToComparisonOperator(const aComparisonOperator: string): TComparisonOperator;
-    function ExecuteOperation(aOperation: TOperation; aLeft, aRight: Extended): Extended;
+    function StrToOperation(const aArithmeticOperator: string): TArithmeticOperator;
+    function StrToRelationalOperator(const aRelationalOperator: string): TRelationalOperator;
+    function StrToLogicalOperator(const aLogicalOperator: string): TLogicalOperator;
+    function ExecuteOperation(aOperation: TArithmeticOperator; aLeft, aRight: Extended): Extended;
     function Scope: IScope;
   public
     constructor Create; override;
@@ -140,7 +143,7 @@ type
     function Visit_AddOp(const aNode: INode): TValue;
     [Rule('mulOp = op:("*"|"/") _')]
     function Visit_MulOp(const aNode: INode): TValue;
-    [Rule('expOp = op:("^"|"r") _')]
+    [Rule('expOp = op:("**"|"r") _')]
     function Visit_ExpOp(const aNode: INode): TValue;
     [Rule('number = num:/[0-9]*\.?[0-9]+(e[-+]?[0-9]+)?/ _')]
     function Visit_Number(const aNode: INode): TValue;
@@ -150,16 +153,28 @@ type
     function Visit_Identifier(const aNode: INode): TValue;
     [Rule('negate = "-"?')]
     function Visit_Negate(const aNode: INode): TValue;
-    {$REGION 'Under development'}
-    [Rule('booleanExpression = booleanConstantExpression | booleanComparisonExpression | booleanNumericExpression')]
+    [Rule('booleanExpression = booleanNegateOperator _ simpleBooleanExpression')]
     function Visit_BooleanExpression(const aNode: INode): TValue;
+    [Rule('simpleBooleanExpression = booleanComparisonList | booleanNumericExpression | booleanConstant')]
+    function Visit_SimpleBooleanExpression(const aNode: INode): TValue;
     [Rule('booleanNumericExpression = expression _')]
     function Visit_BooleanNumericExpression(const aNode: INode): TValue;
-    [Rule('booleanConstantExpression = "true" | "false"')]
-    function Visit_BooleanConstantExpression(const aNode: INode): TValue;
-    [Rule('booleanComparisonExpression = leftExpr:expression _ op:("=="|"!="|"<>"|">="|"<="|">"|"<") _ rightExpr:expression ')]
-    function Visit_BooleanComparisonExpression(const aNode: INode): TValue;
-    {$ENDREGION'}
+    [Rule('booleanComparisonList = comparisonExpression comparison_expr_list:(booleanLogicalOperator booleanExpression)*')]
+    function Visit_BooleanComparisonList(const aNode: INode): TValue;
+    [Rule('comparisonExpression = booleanRelationalExpression | parenthesizedBooleanExpression')]
+    function Visit_ComparisonExpression(const aNode: INode): TValue;
+    [Rule('parenthesizedBooleanExpression = "(" booleanExpression ")" _')]
+    function Visit_ParenthesizedBooleanExpression(const aNode: INode): TValue;
+    [Rule('booleanRelationalExpression = expression relational_expr_list:(booleanRelationalOperator expression)+')]
+    function Visit_BooleanRelationalExpression(const aNode: INode): TValue;
+    [Rule('booleanRelationalOperator = op:("==" | "!="| "<>" | ">=" | "<=" | "<" | ">") _')]
+    function Visit_BooleanRelationalOperator(const aNode: INode): TValue;
+    [Rule('booleanLogicalOperator = op:("or" | "and" | "xor" | "||" | "&&" | "^") _')]
+    function Visit_BooleanLogicalOperator(const aNode: INode): TValue;
+    [Rule('booleanNegateOperator = ("not" | "!")?')]
+    function Visit_BooleanNegateOperator(const aNode: INode): TValue;
+    [Rule('booleanConstant = bool_const:("true" | "false") _')]
+    function Visit_BooleanConstant(const aNode: INode): TValue;
     [Rule('ifelse = "if" _ booleanExpression _ "then" _ statementBody elsePart:(_ "else" _ statementBody)?')]
     [LazyRule]
     function Visit_IfElse(const aNode: INode): TValue;
@@ -203,21 +218,21 @@ begin
   Result := ParseAndVisit(aExpression);
 end;
 
-function TMiniH.ExecuteOperation(aOperation: TOperation; aLeft,
+function TMiniH.ExecuteOperation(aOperation: TArithmeticOperator; aLeft,
   aRight: Extended): Extended;
 begin
   case aOperation of
-    TOperation.Addition:
+    TArithmeticOperator.Addition:
       Result := aLeft + aRight;
-    TOperation.Subtraction:
+    TArithmeticOperator.Subtraction:
       Result := aLeft - aRight;
-    TOperation.Multiplication:
+    TArithmeticOperator.Multiplication:
       Result := aLeft * aRight;
-    TOperation.Division:
+    TArithmeticOperator.Division:
       Result := aLeft / aRight;
-    TOperation.Power:
+    TArithmeticOperator.Power:
       Result := Power(aLeft, aRight);
-    TOperation.Radix:
+    TArithmeticOperator.Radix:
       Result := Power(aRight, 1/aLeft);
     else
       Result := 0;
@@ -229,46 +244,62 @@ begin
   Result := FScopeStack.Peek;
 end;
 
-function TMiniH.StrToComparisonOperator(
-  const aComparisonOperator: string): TComparisonOperator;
+function TMiniH.StrToRelationalOperator(
+  const aRelationalOperator: string): TRelationalOperator;
 begin
-  Result := TComparisonOperator.Equal;
-  if aComparisonOperator = '==' then
-    Result := TComparisonOperator.Equal
-  else if (aComparisonOperator = '!=') or
-          (aComparisonOperator = '<>') then
-    Result := TComparisonOperator.NotEqual
-  else if aComparisonOperator = '>=' then
-    Result := TComparisonOperator.GreaterOrEqualThan
-  else if aComparisonOperator = '<=' then
-    Result := TComparisonOperator.LessOrEqualThan
-  else if aComparisonOperator = '>' then
-    Result := TComparisonOperator.GreaterThan
-  else if aComparisonOperator = '<' then
-    Result := TComparisonOperator.LessThan
+  Result := TRelationalOperator.Equal;
+  if aRelationalOperator = '==' then
+    Result := TRelationalOperator.Equal
+  else if (aRelationalOperator = '!=') or
+          (aRelationalOperator = '<>') then
+    Result := TRelationalOperator.NotEqual
+  else if aRelationalOperator = '>=' then
+    Result := TRelationalOperator.GreaterOrEqualThan
+  else if aRelationalOperator = '<=' then
+    Result := TRelationalOperator.LessOrEqualThan
+  else if aRelationalOperator = '>' then
+    Result := TRelationalOperator.GreaterThan
+  else if aRelationalOperator = '<' then
+    Result := TRelationalOperator.LessThan
 end;
 
-function TMiniH.StrToOperation(const aOperation: string): TOperation;
+function TMiniH.StrToLogicalOperator(
+  const aLogicalOperator: string): TLogicalOperator;
 begin
-  if aOperation = '+' then
-    Result := TOperation.Addition
-  else if aOperation = '-' then
-    Result := TOperation.Subtraction
-  else if aOperation = '*' then
-    Result := TOperation.Multiplication
-  else if aOperation = '/' then
-    Result := TOperation.Division
-  else if aOperation = '^' then
-    Result := TOperation.Power
-  else if aOperation = 'r' then
-    Result := TOperation.Radix
+  if (aLogicalOperator = 'and') or
+     (aLogicalOperator = '&&') then
+    Result := TLogicalOperator.LogicalAnd
+  else if (aLogicalOperator = 'or') or
+          (aLogicalOperator = '||') then
+    Result := TLogicalOperator.LogicalOr
+  else if (aLogicalOperator = 'xor') or
+          (aLogicalOperator = '^') then
+    Result := TLogicalOperator.LogicalXor
   else
-    Result := TOperation.None;
+    Result := TLogicalOperator.None;
+end;
+
+function TMiniH.StrToOperation(const aArithmeticOperator: string): TArithmeticOperator;
+begin
+  if aArithmeticOperator = '+' then
+    Result := TArithmeticOperator.Addition
+  else if aArithmeticOperator = '-' then
+    Result := TArithmeticOperator.Subtraction
+  else if aArithmeticOperator = '*' then
+    Result := TArithmeticOperator.Multiplication
+  else if aArithmeticOperator = '/' then
+    Result := TArithmeticOperator.Division
+  else if aArithmeticOperator = '**' then
+    Result := TArithmeticOperator.Power
+  else if aArithmeticOperator = 'r' then
+    Result := TArithmeticOperator.Radix
+  else
+    Result := TArithmeticOperator.None;
 end;
 
 function TMiniH.Visit_AddOp(const aNode: INode): TValue;
 begin
-  Result := TValue.From<TOperation>(StrToOperation(aNode.Children['op'].Text));
+  Result := TValue.From<TArithmeticOperator>(StrToOperation(aNode.Children['op'].Text));
 end;
 
 function TMiniH.Visit_Arguments(const aNode: INode): TValue;
@@ -302,43 +333,89 @@ begin
   Result := aNode.Children.First.Value.AsExtended;
 end;
 
-function TMiniH.Visit_BooleanComparisonExpression(const aNode: INode): TValue;
+function TMiniH.Visit_BooleanComparisonList(const aNode: INode): TValue;
 var
-  LeftExpression, RightExpression: Extended;
+  ChildNode: INode;
 begin
-  LeftExpression := aNode.Children[0].Value.AsExtended;  //left_expr
-  RightExpression := aNode.Children[2].Value.AsExtended; //right_expr
-  case StrToComparisonOperator(aNode.Children['op'].Text)  of
-    TComparisonOperator.Equal:
-      Result := LeftExpression = RightExpression;
-    TComparisonOperator.NotEqual:
-      Result := LeftExpression <> RightExpression;
-    TComparisonOperator.GreaterThan:
-      Result := LeftExpression > RightExpression;
-    TComparisonOperator.LessThan:
-      Result := LeftExpression < RightExpression;
-    TComparisonOperator.GreaterOrEqualThan:
-      Result := LeftExpression >= RightExpression;
-    TComparisonOperator.LessOrEqualThan:
-      Result := LeftExpression <= RightExpression
-    else
-      Result := False;
+  Result := aNode.Children['comparisonExpression'].Value.AsBoolean;
+  if Assigned(aNode.Children['comparison_expr_list'].Children) then
+  begin
+    for ChildNode in aNode.Children['comparison_expr_list'].Children do
+    begin
+      case ChildNode.Children['booleanLogicalOperator'].Value.AsType<TLogicalOperator> of
+        TLogicalOperator.LogicalOr:
+          Result := Result.AsBoolean or ChildNode.Children['booleanExpression'].Value.AsBoolean;
+        TLogicalOperator.LogicalAnd:
+          Result := Result.AsBoolean and ChildNode.Children['booleanExpression'].Value.AsBoolean;
+        TLogicalOperator.LogicalXor:
+          Result := Result.AsBoolean xor ChildNode.Children['booleanExpression'].Value.AsBoolean;
+      end;
+    end;
   end;
 end;
 
-function TMiniH.Visit_BooleanConstantExpression(const aNode: INode): TValue;
+function TMiniH.Visit_BooleanConstant(const aNode: INode): TValue;
 begin
-  Result := aNode.Text = 'true';
+  Result := aNode.Children['bool_const'].Text = 'true';
 end;
 
 function TMiniH.Visit_BooleanExpression(const aNode: INode): TValue;
 begin
-  Result := aNode.Children.First.Value;
+  Result := aNode.Children['simpleBooleanExpression'].Value;
+  if aNode.Children['booleanNegateOperator'].Value.AsBoolean then
+    Result := not Result.AsBoolean;
+end;
+
+function TMiniH.Visit_BooleanLogicalOperator(const aNode: INode): TValue;
+begin
+  Result := TValue.From<TLogicalOperator>(StrToLogicalOperator(aNode.Children['op'].Text));
+end;
+
+function TMiniH.Visit_BooleanNegateOperator(const aNode: INode): TValue;
+begin
+  Result := Assigned(aNode.Children);
 end;
 
 function TMiniH.Visit_BooleanNumericExpression(const aNode: INode): TValue;
 begin
   Result := aNode.Children['expression'].Value.AsExtended <> 0;
+end;
+
+function TMiniH.Visit_BooleanRelationalExpression(const aNode: INode): TValue;
+var
+  ChildNode: INode;
+  LeftValue: Extended;
+begin
+  Result := True;
+  LeftValue := aNode.Children['expression'].Value.AsExtended;
+  if Assigned(aNode.Children['relational_expr_list'].Children) then
+  begin
+    for ChildNode in aNode.Children['relational_expr_list'].Children do
+    begin
+      case ChildNode.Children['booleanRelationalOperator'].Value.AsType<TRelationalOperator> of
+        TRelationalOperator.Equal:
+          Result := LeftValue = ChildNode.Children['expression'].Value.AsExtended;
+        TRelationalOperator.NotEqual:
+          Result := LeftValue <> ChildNode.Children['expression'].Value.AsExtended;
+        TRelationalOperator.GreaterThan:
+          Result := LeftValue > ChildNode.Children['expression'].Value.AsExtended;
+        TRelationalOperator.LessThan:
+          Result := LeftValue < ChildNode.Children['expression'].Value.AsExtended;
+        TRelationalOperator.GreaterOrEqualThan:
+          Result := LeftValue >= ChildNode.Children['expression'].Value.AsExtended;
+        TRelationalOperator.LessOrEqualThan:
+          Result := LeftValue <= ChildNode.Children['expression'].Value.AsExtended;
+      end;
+      LeftValue := ChildNode.Children['expression'].Value.AsExtended;
+      if not Result.AsBoolean then
+        Break;
+    end;
+  end;
+end;
+
+function TMiniH.Visit_BooleanRelationalOperator(const aNode: INode): TValue;
+begin
+  Result := TValue.From<TRelationalOperator>(StrToRelationalOperator(aNode.Children['op'].Text));
 end;
 
 function TMiniH.Visit_Call(const aNode: INode): TValue;
@@ -372,9 +449,14 @@ begin
       'scope', [MethodName]);
 end;
 
+function TMiniH.Visit_ComparisonExpression(const aNode: INode): TValue;
+begin
+  Result := aNode.Children.First.Value;
+end;
+
 function TMiniH.Visit_ExpOp(const aNode: INode): TValue;
 begin
-  Result := TValue.From<TOperation>(StrToOperation(aNode.Children['op'].Text));
+  Result := TValue.From<TArithmeticOperator>(StrToOperation(aNode.Children['op'].Text));
 end;
 
 function TMiniH.Visit_Expression(const aNode: INode): TValue;
@@ -387,7 +469,7 @@ begin
     for ChildNode in aNode.Children['term_list'].Children do
     begin
       Result := ExecuteOperation(
-        ChildNode.Children['addOp'].Value.AsType<TOperation>,
+        ChildNode.Children['addOp'].Value.AsType<TArithmeticOperator>,
         Result.AsExtended,
         ChildNode.Children['term'].Value.AsExtended
       );
@@ -407,7 +489,7 @@ begin
     for ChildNode in aNode.Children['atom_list'].Children do
     begin
       Result := ExecuteOperation(
-        ChildNode.Children['expOp'].Value.AsType<TOperation>,
+        ChildNode.Children['expOp'].Value.AsType<TArithmeticOperator>,
         Result.AsExtended,
         ChildNode.Children['atom'].Value.AsExtended
       );
@@ -469,7 +551,7 @@ end;
 
 function TMiniH.Visit_MulOp(const aNode: INode): TValue;
 begin
-  Result := TValue.From<TOperation>(StrToOperation(aNode.Children['op'].Text));
+  Result := TValue.From<TArithmeticOperator>(StrToOperation(aNode.Children['op'].Text));
 end;
 
 function TMiniH.Visit_Negate(const aNode: INode): TValue;
@@ -497,6 +579,12 @@ begin
   Result := TValue.From<IArrayString>(Params);
 end;
 
+function TMiniH.Visit_ParenthesizedBooleanExpression(
+  const aNode: INode): TValue;
+begin
+  Result := aNode.Children['booleanExpression'].Value;
+end;
+
 function TMiniH.Visit_ParenthesizedExp(const aNode: INode): TValue;
 begin
   Result := aNode.Children['expression'].Value.AsExtended;
@@ -505,6 +593,11 @@ end;
 function TMiniH.Visit_Program(const aNode: INode): TValue;
 begin
   Result := aNode.Children['statementList'].Value;
+end;
+
+function TMiniH.Visit_SimpleBooleanExpression(const aNode: INode): TValue;
+begin
+  Result := aNode.Children.First.Value;
 end;
 
 function TMiniH.Visit_Statement(const aNode: INode): TValue;
@@ -539,7 +632,7 @@ begin
     for ChildNode in aNode.Children['factor_list'].Children do
     begin
       Result := ExecuteOperation(
-        ChildNode.Children['mulOp'].Value.AsType<TOperation>,
+        ChildNode.Children['mulOp'].Value.AsType<TArithmeticOperator>,
         Result.AsExtended,
         ChildNode.Children['factor'].Value.AsExtended
       );

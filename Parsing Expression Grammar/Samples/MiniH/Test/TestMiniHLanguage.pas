@@ -104,7 +104,7 @@ end;
 
 procedure TestMiniH.TestMultipleStatements;
 begin
-  CheckEquals(512, MiniH.Instance.Execute('1 + 2; 7 * 4; 2 - 5; 2^9').AsExtended);
+  CheckEquals(512, MiniH.Instance.Execute('1 + 2; 7 * 4; 2 - 5; 2**9').AsExtended);
 end;
 
 procedure TestMiniH.TestNestedFunctions;

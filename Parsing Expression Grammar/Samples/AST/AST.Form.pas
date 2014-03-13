@@ -28,15 +28,33 @@ uses
 
 type
   TFormGrammarAST = class(TForm)
-    TabControl1: TTabControl;
+    tcGrammar: TTabControl;
     tiGrammar: TTabItem;
-    tiGrammarAST: TTabItem;
+    tiGrammar_AST: TTabItem;
     mmGrammar: TMemo;
-    btnGenerateAST: TButton;
+    btnGenerateGrammarAST: TButton;
     mmAST: TMemo;
-    procedure btnGenerateASTClick(Sender: TObject);
+    tcAST: TTabControl;
+    tiAST_Grammar: TTabItem;
+    tiAST_Input: TTabItem;
+    tcInput: TTabControl;
+    tiInput: TTabItem;
+    tiInput_AST: TTabItem;
+    mmInput: TMemo;
+    mmInput_AST: TMemo;
+    btnGenerateInputAST: TButton;
+    StyleBook1: TStyleBook;
+    procedure btnGenerateGrammarASTClick(Sender: TObject);
+    procedure btnGenerateInputASTClick(Sender: TObject);
+    procedure FormCreate(Sender: TObject);
+    procedure mmGrammarKeyDown(Sender: TObject; var Key: Word;
+      var KeyChar: Char; Shift: TShiftState);
+    procedure mmInputKeyDown(Sender: TObject; var Key: Word; var KeyChar: Char;
+      Shift: TShiftState);
   private
     { Private declarations }
+    procedure GenerateGrammarAST;
+    procedure GenerateInputAST;
   public
     { Public declarations }
   end;
@@ -46,24 +64,71 @@ var
 
 implementation
 
+uses
+  HSharp.Core.Lazy;
+
+var
+  BootstrappingGrammar: Lazy<IBootstrappingGrammar, TBootstrappingGrammar>;
+  Visitor: Lazy<INodeVisitor, TPrinterNodeVisitor>;
 
 {$R *.fmx}
 
-procedure TFormGrammarAST.btnGenerateASTClick(Sender: TObject);
+procedure TFormGrammarAST.btnGenerateGrammarASTClick(Sender: TObject);
+begin
+  GenerateGrammarAST;
+end;
+
+procedure TFormGrammarAST.btnGenerateInputASTClick(Sender: TObject);
+begin
+  GenerateInputAST;
+end;
+
+procedure TFormGrammarAST.FormCreate(Sender: TObject);
+begin
+  tcAST.ActiveTab     := tiAST_Grammar;
+  tcGrammar.ActiveTab := tiGrammar;
+end;
+
+procedure TFormGrammarAST.GenerateGrammarAST;
 var
-  Boot: IBootstrappingGrammar;
-  Tree: INode;
-  Visitor: INodeVisitor;
+  GrammarTree: INode;
 begin
   mmAST.Lines.Clear;
   mmAST.BeginUpdate;
-
-  Boot := TBootstrappingGrammar.Create;
-  Tree := Boot.Parse(mmGrammar.Text);
-  Visitor := TPrinterNodeVisitor.Create;
-  mmAST.Lines.Text := (Tree as IVisitableNode).Accept(Visitor).AsString;
-
+  GrammarTree := BootstrappingGrammar.Instance.Parse(mmGrammar.Text);
+  mmAST.Lines.Text := (GrammarTree as IVisitableNode).Accept(Visitor).AsString;
   mmAST.EndUpdate;
+  tcAST.ActiveTab     := tiAST_Grammar;
+  tcGrammar.ActiveTab := tiGrammar_AST;
+end;
+
+procedure TFormGrammarAST.GenerateInputAST;
+var
+  Grammar: IGrammar;
+  GrammarTree: INode;
+begin
+  Grammar := TGrammar.Create(BootstrappingGrammar.Instance.GetRules(mmGrammar.Text));
+  mmInput_AST.Lines.Clear;
+  mmInput_AST.BeginUpdate;
+  GrammarTree := Grammar.Parse(mmInput.Text);
+  mmInput_AST.Lines.Text := (GrammarTree as IVisitableNode).Accept(Visitor).AsString;
+  mmInput_AST.EndUpdate;
+  tcAST.ActiveTab   := tiAST_Input;
+  tcInput.ActiveTab := tiInput_AST;
+end;
+
+procedure TFormGrammarAST.mmGrammarKeyDown(Sender: TObject; var Key: Word;
+  var KeyChar: Char; Shift: TShiftState);
+begin
+  if (ssCtrl in Shift) and (Key = vkReturn) then
+    GenerateGrammarAST;
+end;
+
+procedure TFormGrammarAST.mmInputKeyDown(Sender: TObject; var Key: Word;
+  var KeyChar: Char; Shift: TShiftState);
+begin
+  if (ssCtrl in Shift) and (Key = vkReturn) then
+    GenerateInputAST;
 end;
 
 end.
