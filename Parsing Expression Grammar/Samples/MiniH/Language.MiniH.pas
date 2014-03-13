@@ -48,6 +48,7 @@ type
   TRelationalOperator = (None, Equal, NotEqual, GreaterThan, LessThan, GreaterOrEqualThan, LessOrEqualThan);
   TLogicalOperator = (None, LogicalAnd, LogicalOr, LogicalXor);
   TIncrementDecrementOperator = (Increment, Decrement);
+  TCompoundAssignment = (AdditionAssignment, SubtractionAssignment, MultiplicationAssignment, DivisionAssignment, IntegerDivisionAssignment, ModuloAssignment, PowerAssignment);
   {$SCOPEDENUMS OFF}
 
   {$ENDREGION}
@@ -110,6 +111,7 @@ type
     function StrToIncrementDecrementOperator(const aIncrementDecrementOperator: string): TIncrementDecrementOperator;
     function ApplyArithmeticOperator(aOperation: TArithmeticOperator; aLeft, aRight: Extended): Extended;
     function ApplyIncrementDecrementOperator(aValue: Extended; aIncrementDecrementOperator: TIncrementDecrementOperator): Extended;
+    function DoCompoundAssignment(const aVariableName: string; aExpressionValue: Extended; aCompoundAssignment: TCompoundAssignment): Extended;
     function Scope: IScope;
   public
     constructor Create; override;
@@ -145,13 +147,31 @@ type
     function Visit_IncrementDecrementOperator(const aNode: INode): TValue;
     [Rule('parenthesizedExp = "(" _ expression ")" _')]
     function Visit_ParenthesizedExp(const aNode: INode): TValue;
-    [Rule('assignment = identifier "=" expression')]
+    [Rule('assignment = simpleAssignment | compoundAssignment')]
     function Visit_Assignment(const aNode: INode): TValue;
-    [Rule('addOp = op:("+"|"-") _')]
+    [Rule('simpleAssignment = identifier _ "=" _ expression')]
+    function Visit_SimpleAssignment(const aNode: INode): TValue;
+    [Rule('compoundAssignment = additionAssignment | subtractionAssignment | multiplicationAssignment | divisionAssignment | integerDivisionAssignment | moduloAssignment | powerAssignment')]
+    function Visit_CompoundAssignment(const aNode: INode): TValue;
+    [Rule('additionAssignment = identifier _ "+=" _ expression')]
+    function Visit_AdditionAssignment(const aNode: INode): TValue;
+    [Rule('subtractionAssignment = identifier _ "-=" _ expression')]
+    function Visit_SubtractionAssignment(const aNode: INode): TValue;
+    [Rule('multiplicationAssignment = identifier _ "*=" _ expression')]
+    function Visit_MultiplicationAssignment(const aNode: INode): TValue;
+    [Rule('divisionAssignment = identifier _ "/=" _ expression')]
+    function Visit_DivisionAssignment(const aNode: INode): TValue;
+    [Rule('integerDivisionAssignment = identifier _ "//=" _ expression')]
+    function Visit_IntegerDivisionAssignment(const aNode: INode): TValue;
+    [Rule('moduloAssignment = identifier _ "%=" _ expression')]
+    function Visit_ModuloAssignment(const aNode: INode): TValue;
+    [Rule('powerAssignment = identifier _ "**=" _ expression')]
+    function Visit_PowerAssignment(const aNode: INode): TValue;
+    [Rule('addOp = op:("+" | "-") _')]
     function Visit_AddOp(const aNode: INode): TValue;
-    [Rule('mulOp = op:("*"|"//"|"div"|"/"|"%"|"mod") _')]
+    [Rule('mulOp = op:("*" | "//" | "div" | "/" | "%" | "mod") _')]
     function Visit_MulOp(const aNode: INode): TValue;
-    [Rule('expOp = op:("**"|"r") _')]
+    [Rule('expOp = op:("**" | "r") _')]
     function Visit_ExpOp(const aNode: INode): TValue;
     [Rule('number = num:/[0-9]*\.?[0-9]+(e[-+]?[0-9]+)?/ _')]
     function Visit_Number(const aNode: INode): TValue;
@@ -183,13 +203,13 @@ type
     function Visit_BooleanNegateOperator(const aNode: INode): TValue;
     [Rule('booleanConstant = bool_const:("true" | "false") _')]
     function Visit_BooleanConstant(const aNode: INode): TValue;
-    [Rule('ifelse = "if" _ booleanExpression _ "then" _ statementBody elsePart:(_ "else" _ statementBody)?')]
+    [Rule('ifelse = "if" _ booleanExpression _ ( "then" _ )? statementBody elsePart:(_ "else" _ statementBody)?')]
     [LazyRule]
     function Visit_IfElse(const aNode: INode): TValue;
-    [Rule('while = "while" _ booleanExpression _ "do" _ statementBody')]
+    [Rule('while = "while" _ booleanExpression _ ( "do" _ )? statementBody')]
     [LazyRule]
     function Visit_While(const aNode: INode): TValue;
-    [Rule('for = "for" _ identifier _ "=" _ initialExp:expression _ "to" _ finalExp:expression _ "do" _ statementBody')]
+    [Rule('for = "for" _ identifier _ "=" _ initialExp:expression _ "to" _ finalExp:expression _ ( "do" _ )? statementBody')]
     [LazyRule]
     function Visit_For(const aNode: INode): TValue;
     [Rule('call = identifier _ "(" _ arguments _ ")" _')]
@@ -227,6 +247,38 @@ begin
   inherited;
   FScopeStack := Collections.CreateStack<IScope>;
   FScopeStack.Push(TScope.Create);
+end;
+
+function TMiniH.DoCompoundAssignment(const aVariableName: string;
+  aExpressionValue: Extended; aCompoundAssignment: TCompoundAssignment): Extended;
+var
+  VariableValue, Value: Extended;
+begin
+  if Scope.Variables.TryGetValue(aVariableName, VariableValue) then
+  begin
+    Value := VariableValue;
+    case aCompoundAssignment of
+      TCompoundAssignment.AdditionAssignment:
+        Value := Value + aExpressionValue;
+      TCompoundAssignment.SubtractionAssignment:
+        Value := Value - aExpressionValue;
+      TCompoundAssignment.MultiplicationAssignment:
+        Value := Value * aExpressionValue;
+      TCompoundAssignment.DivisionAssignment:
+        Value := Value / aExpressionValue;
+      TCompoundAssignment.IntegerDivisionAssignment:
+        Value := Trunc(Value) div Trunc(aExpressionValue); {TODO -oHelton -cCheck this again : Check if this Trunc is correct}
+      TCompoundAssignment.ModuloAssignment:
+        Value := Trunc(Value) mod Trunc(aExpressionValue); {TODO -oHelton -cCheck this again : Check if this Trunc is correct}
+      TCompoundAssignment.PowerAssignment:
+        Value := Power(Value, aExpressionValue);
+    end;
+    Scope.Variables.AddOrSetValue(aVariableName, Value);
+  end
+  else
+    raise EVariableNotDefinedException.CreateFmt('Variable "%s" is not defined in this ' +
+      'scope', [aVariableName]);
+  Result := Value;
 end;
 
 function TMiniH.Execute(const aExpression: string): TValue;
@@ -333,6 +385,14 @@ begin
     Result := TArithmeticOperator.None;
 end;
 
+function TMiniH.Visit_AdditionAssignment(const aNode: INode): TValue;
+begin
+  Result := DoCompoundAssignment(aNode.Children['identifier'].Value.AsString,
+    aNode.Children['expression'].Value.AsExtended,
+    TCompoundAssignment.AdditionAssignment
+  );
+end;
+
 function TMiniH.Visit_AddOp(const aNode: INode): TValue;
 begin
   Result := TValue.From<TArithmeticOperator>(StrToOperation(aNode.Children['op'].Text));
@@ -354,14 +414,8 @@ begin
 end;
 
 function TMiniH.Visit_Assignment(const aNode: INode): TValue;
-var
-  Name: string;
-  Value: Extended;
 begin
-  Name := aNode.Children['identifier'].Value.AsString;
-  Value := aNode.Children['expression'].Value.AsExtended;
-  Scope.Variables.AddOrSetValue(Name, Value);
-  Result := Value;
+  Result := aNode.Children.First.Value;
 end;
 
 function TMiniH.Visit_Atom(const aNode: INode): TValue;
@@ -490,6 +544,19 @@ begin
   Result := aNode.Children.First.Value;
 end;
 
+function TMiniH.Visit_CompoundAssignment(const aNode: INode): TValue;
+begin
+  Result := aNode.Children.First.Value;
+end;
+
+function TMiniH.Visit_DivisionAssignment(const aNode: INode): TValue;
+begin
+  Result := DoCompoundAssignment(aNode.Children['identifier'].Value.AsString,
+    aNode.Children['expression'].Value.AsExtended,
+    TCompoundAssignment.DivisionAssignment
+  );
+end;
+
 function TMiniH.Visit_ExpOp(const aNode: INode): TValue;
 begin
   Result := TValue.From<TArithmeticOperator>(StrToOperation(aNode.Children['op'].Text));
@@ -590,9 +657,33 @@ begin
   Result := TValue.From<TIncrementDecrementOperator>(StrToIncrementDecrementOperator(aNode.Text));
 end;
 
+function TMiniH.Visit_IntegerDivisionAssignment(const aNode: INode): TValue;
+begin
+  Result := DoCompoundAssignment(aNode.Children['identifier'].Value.AsString,
+    aNode.Children['expression'].Value.AsExtended,
+    TCompoundAssignment.IntegerDivisionAssignment
+  );
+end;
+
+function TMiniH.Visit_ModuloAssignment(const aNode: INode): TValue;
+begin
+  Result := DoCompoundAssignment(aNode.Children['identifier'].Value.AsString,
+    aNode.Children['expression'].Value.AsExtended,
+    TCompoundAssignment.ModuloAssignment
+  );
+end;
+
 function TMiniH.Visit_MulOp(const aNode: INode): TValue;
 begin
   Result := TValue.From<TArithmeticOperator>(StrToOperation(aNode.Children['op'].Text));
+end;
+
+function TMiniH.Visit_MultiplicationAssignment(const aNode: INode): TValue;
+begin
+  Result := DoCompoundAssignment(aNode.Children['identifier'].Value.AsString,
+    aNode.Children['expression'].Value.AsExtended,
+    TCompoundAssignment.MultiplicationAssignment
+  );
 end;
 
 function TMiniH.Visit_Negate(const aNode: INode): TValue;
@@ -649,6 +740,14 @@ begin
       'scope', [VariableName]);
 end;
 
+function TMiniH.Visit_PowerAssignment(const aNode: INode): TValue;
+begin
+  Result := DoCompoundAssignment(aNode.Children['identifier'].Value.AsString,
+    aNode.Children['expression'].Value.AsExtended,
+    TCompoundAssignment.PowerAssignment
+  );
+end;
+
 function TMiniH.Visit_PrefixExpression(const aNode: INode): TValue;
 var
   VariableName: string;
@@ -669,6 +768,17 @@ end;
 function TMiniH.Visit_Program(const aNode: INode): TValue;
 begin
   Result := aNode.Children['statementList'].Value;
+end;
+
+function TMiniH.Visit_SimpleAssignment(const aNode: INode): TValue;
+var
+  VariableName: string;
+  Value: Extended;
+begin
+  VariableName := aNode.Children['identifier'].Value.AsString;
+  Value := aNode.Children['expression'].Value.AsExtended;
+  Scope.Variables.AddOrSetValue(VariableName, Value);
+  Result := Value;
 end;
 
 function TMiniH.Visit_SimpleBooleanExpression(const aNode: INode): TValue;
@@ -696,6 +806,14 @@ begin
   Result := aNode.Children['statement'].Value;
   if Assigned(aNode.Children['statement_list'].Children) then
     Result := aNode.Children['statement_list'].Children.Last.Children['statement'].Value;
+end;
+
+function TMiniH.Visit_SubtractionAssignment(const aNode: INode): TValue;
+begin
+  Result := DoCompoundAssignment(aNode.Children['identifier'].Value.AsString,
+    aNode.Children['expression'].Value.AsExtended,
+    TCompoundAssignment.SubtractionAssignment
+  );
 end;
 
 function TMiniH.Visit_Term(const aNode: INode): TValue;
