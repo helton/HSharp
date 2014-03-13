@@ -44,7 +44,7 @@ type
   EMethodNotDefinedException = class(Exception);
   EArgumentCountException = class(Exception);
   {$SCOPEDENUMS ON}
-  TArithmeticOperator = (None, Addition, Subtraction, Multiplication, Division, Power, Radix);
+  TArithmeticOperator = (None, Addition, Subtraction, Multiplication, Division, IntegerDivision, Modulo, Power, Radix);
   TRelationalOperator = (None, Equal, NotEqual, GreaterThan, LessThan, GreaterOrEqualThan, LessOrEqualThan);
   TLogicalOperator = (None, LogicalAnd, LogicalOr, LogicalXor);
   TIncrementDecrementOperator = (Increment, Decrement);
@@ -107,7 +107,9 @@ type
     function StrToOperation(const aArithmeticOperator: string): TArithmeticOperator;
     function StrToRelationalOperator(const aRelationalOperator: string): TRelationalOperator;
     function StrToLogicalOperator(const aLogicalOperator: string): TLogicalOperator;
-    function ExecuteOperation(aOperation: TArithmeticOperator; aLeft, aRight: Extended): Extended;
+    function StrToIncrementDecrementOperator(const aIncrementDecrementOperator: string): TIncrementDecrementOperator;
+    function ApplyArithmeticOperator(aOperation: TArithmeticOperator; aLeft, aRight: Extended): Extended;
+    function ApplyIncrementDecrementOperator(aValue: Extended; aIncrementDecrementOperator: TIncrementDecrementOperator): Extended;
     function Scope: IScope;
   public
     constructor Create; override;
@@ -133,15 +135,21 @@ type
     function Visit_Term(const aNode: INode): TValue;
     [Rule('factor = atom atom_list:( expOp atom )*')]
     function Visit_Factor(const aNode: INode): TValue;
-    [Rule('atom = call | parenthesizedExp | number | assignment | variable')]
+    [Rule('atom = call | parenthesizedExp | number | assignment | prefixExpression | posfixExpression | variable')]
     function Visit_Atom(const aNode: INode): TValue;
+    [Rule('prefixExpression = incrementDecrementOperator _ identifier')]
+    function Visit_PrefixExpression(const aNode: INode): TValue;
+    [Rule('posfixExpression = identifier _ incrementDecrementOperator')]
+    function Visit_PosfixExpression(const aNode: INode): TValue;
+    [Rule('incrementDecrementOperator = "++" | "--"')]
+    function Visit_IncrementDecrementOperator(const aNode: INode): TValue;
     [Rule('parenthesizedExp = "(" _ expression ")" _')]
     function Visit_ParenthesizedExp(const aNode: INode): TValue;
     [Rule('assignment = identifier "=" expression')]
     function Visit_Assignment(const aNode: INode): TValue;
     [Rule('addOp = op:("+"|"-") _')]
     function Visit_AddOp(const aNode: INode): TValue;
-    [Rule('mulOp = op:("*"|"/") _')]
+    [Rule('mulOp = op:("*"|"//"|"div"|"/"|"%"|"mod") _')]
     function Visit_MulOp(const aNode: INode): TValue;
     [Rule('expOp = op:("**"|"r") _')]
     function Visit_ExpOp(const aNode: INode): TValue;
@@ -205,6 +213,15 @@ uses
 
 { TMiniH }
 
+function TMiniH.ApplyIncrementDecrementOperator(
+  aValue: Extended; aIncrementDecrementOperator: TIncrementDecrementOperator): Extended;
+begin
+  if aIncrementDecrementOperator = TIncrementDecrementOperator.Increment then
+    Result := aValue + 1
+  else
+    Result := aValue - 1;
+end;
+
 constructor TMiniH.Create;
 begin
   inherited;
@@ -218,7 +235,7 @@ begin
   Result := ParseAndVisit(aExpression);
 end;
 
-function TMiniH.ExecuteOperation(aOperation: TArithmeticOperator; aLeft,
+function TMiniH.ApplyArithmeticOperator(aOperation: TArithmeticOperator; aLeft,
   aRight: Extended): Extended;
 begin
   case aOperation of
@@ -230,6 +247,10 @@ begin
       Result := aLeft * aRight;
     TArithmeticOperator.Division:
       Result := aLeft / aRight;
+    TArithmeticOperator.IntegerDivision:
+      Result := Trunc(aLeft) div Trunc(aRight); {TODO -oHelton -cCheck this again : Check if this Trunc is correct}
+    TArithmeticOperator.Modulo:
+      Result := Trunc(aLeft) mod Trunc(aRight); {TODO -oHelton -cCheck this again : Check if this Trunc is correct}
     TArithmeticOperator.Power:
       Result := Power(aLeft, aRight);
     TArithmeticOperator.Radix:
@@ -263,6 +284,15 @@ begin
     Result := TRelationalOperator.LessThan
 end;
 
+function TMiniH.StrToIncrementDecrementOperator(
+  const aIncrementDecrementOperator: string): TIncrementDecrementOperator;
+begin
+  if aIncrementDecrementOperator = '++' then
+    Result := TIncrementDecrementOperator.Increment
+  else
+    Result := TIncrementDecrementOperator.Decrement;
+end;
+
 function TMiniH.StrToLogicalOperator(
   const aLogicalOperator: string): TLogicalOperator;
 begin
@@ -289,6 +319,12 @@ begin
     Result := TArithmeticOperator.Multiplication
   else if aArithmeticOperator = '/' then
     Result := TArithmeticOperator.Division
+  else if (aArithmeticOperator = '//') or
+          (aArithmeticOperator = 'div') then
+    Result := TArithmeticOperator.IntegerDivision
+  else if (aArithmeticOperator = '%') or
+          (aArithmeticOperator = 'mod') then
+    Result := TArithmeticOperator.Modulo
   else if aArithmeticOperator = '**' then
     Result := TArithmeticOperator.Power
   else if aArithmeticOperator = 'r' then
@@ -468,7 +504,7 @@ begin
   begin
     for ChildNode in aNode.Children['term_list'].Children do
     begin
-      Result := ExecuteOperation(
+      Result := ApplyArithmeticOperator(
         ChildNode.Children['addOp'].Value.AsType<TArithmeticOperator>,
         Result.AsExtended,
         ChildNode.Children['term'].Value.AsExtended
@@ -488,7 +524,7 @@ begin
   begin
     for ChildNode in aNode.Children['atom_list'].Children do
     begin
-      Result := ExecuteOperation(
+      Result := ApplyArithmeticOperator(
         ChildNode.Children['expOp'].Value.AsType<TArithmeticOperator>,
         Result.AsExtended,
         ChildNode.Children['atom'].Value.AsExtended
@@ -549,6 +585,11 @@ begin
   end;
 end;
 
+function TMiniH.Visit_IncrementDecrementOperator(const aNode: INode): TValue;
+begin
+  Result := TValue.From<TIncrementDecrementOperator>(StrToIncrementDecrementOperator(aNode.Text));
+end;
+
 function TMiniH.Visit_MulOp(const aNode: INode): TValue;
 begin
   Result := TValue.From<TArithmeticOperator>(StrToOperation(aNode.Children['op'].Text));
@@ -588,6 +629,41 @@ end;
 function TMiniH.Visit_ParenthesizedExp(const aNode: INode): TValue;
 begin
   Result := aNode.Children['expression'].Value.AsExtended;
+end;
+
+function TMiniH.Visit_PosfixExpression(const aNode: INode): TValue;
+var
+  VariableName: string;
+  Value: Extended;
+begin
+  VariableName := aNode.Children['identifier'].Value.AsString;
+  if Scope.Variables.TryGetValue(VariableName, Value) then
+  begin
+    Result := Value;
+    Scope.Variables.AddOrSetValue(VariableName,
+      ApplyIncrementDecrementOperator(Value,
+        aNode.Children['incrementDecrementOperator'].Value.AsType<TIncrementDecrementOperator>));
+  end
+  else
+    raise EVariableNotDefinedException.CreateFmt('Variable "%s" is not defined in this ' +
+      'scope', [VariableName]);
+end;
+
+function TMiniH.Visit_PrefixExpression(const aNode: INode): TValue;
+var
+  VariableName: string;
+  Value: Extended;
+begin
+  VariableName := aNode.Children['identifier'].Value.AsString;
+  if Scope.Variables.TryGetValue(VariableName, Value) then
+  begin
+    Scope.Variables.AddOrSetValue(VariableName,
+       ApplyIncrementDecrementOperator(Value, aNode.Children['incrementDecrementOperator'].Value.AsType<TIncrementDecrementOperator>));
+    Result := Scope.Variables.Items[VariableName];
+  end
+  else
+    raise EVariableNotDefinedException.CreateFmt('Variable "%s" is not defined in this ' +
+      'scope', [VariableName]);
 end;
 
 function TMiniH.Visit_Program(const aNode: INode): TValue;
@@ -631,7 +707,7 @@ begin
   begin
     for ChildNode in aNode.Children['factor_list'].Children do
     begin
-      Result := ExecuteOperation(
+      Result := ApplyArithmeticOperator(
         ChildNode.Children['mulOp'].Value.AsType<TArithmeticOperator>,
         Result.AsExtended,
         ChildNode.Children['factor'].Value.AsExtended
